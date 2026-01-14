@@ -11,10 +11,12 @@ export default function StatsTab() {
     return (
         <Card>
             <Descriptions bordered size="small" column={2}>
-                <Descriptions.Item label="Glyph 数">{s.glyphCount}</Descriptions.Item>
-                <Descriptions.Item label="Range 数">{s.rangeCount}</Descriptions.Item>
-                <Descriptions.Item label="Bitmap 估算">{s.bitmapBytes} bytes</Descriptions.Item>
-                <Descriptions.Item label="文本大小">{s.textBytes} bytes</Descriptions.Item>
+                <Descriptions.Item label="Glyphs">{s.glyphCount}</Descriptions.Item>
+                <Descriptions.Item label="Ranges">{s.rangeCount ?? "-"}</Descriptions.Item>
+                <Descriptions.Item label="Bitmap bytes">{s.bitmapBytes} bytes</Descriptions.Item>
+                <Descriptions.Item label="Text bytes">{s.textBytes} bytes</Descriptions.Item>
+                <Descriptions.Item label="max_w">{s.maxW ?? "-"}</Descriptions.Item>
+                <Descriptions.Item label="max_h">{s.maxH ?? "-"}</Descriptions.Item>
                 <Descriptions.Item label="line_height">{s.lineHeight ?? "-"}</Descriptions.Item>
                 <Descriptions.Item label="baseline">{s.baseline ?? "-"}</Descriptions.Item>
             </Descriptions>
