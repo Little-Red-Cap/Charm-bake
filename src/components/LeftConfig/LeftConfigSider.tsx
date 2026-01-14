@@ -7,7 +7,7 @@ import SavePanel from "./panels/SavePanel";
 
 export default function LeftConfigSider() {
     return (
-        <div style={{ padding: 12 }}>
+        <div className="compactLayout" style={{ padding: 8 }}>
             <Collapse
                 defaultActiveKey={["font", "charset", "size", "output", "save"]}
                 items={[
@@ -18,10 +18,6 @@ export default function LeftConfigSider() {
                     { key: "save", label: "保存设置", children: <SavePanel /> },
                 ]}
             />
-            <Divider style={{ margin: "12px 0" }} />
-            <div style={{ fontSize: 12, opacity: 0.65 }}>
-                TODO：系统字体列表（Tauri）/ Rust 生成器 / 点阵预览
-            </div>
         </div>
     );
 }

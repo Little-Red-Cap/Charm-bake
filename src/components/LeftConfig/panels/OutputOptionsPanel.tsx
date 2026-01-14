@@ -1,4 +1,4 @@
-﻿import { Form, Input, Radio, Checkbox, Space, Typography, Button, InputNumber, Slider } from "antd";
+﻿import { Form, Input, Radio, Checkbox, Space, Typography, Button, Slider } from "antd";
 import { useFontJobStore } from "../../../store/fontjob.store";
 
 export default function OutputOptionsPanel() {
@@ -52,33 +52,18 @@ export default function OutputOptionsPanel() {
 
                     <div style={{ width: "100%" }}>
                         <Typography.Text style={{ marginRight: 8 }}>阈值</Typography.Text>
-                        <Space style={{ width: "100%" }}>
-                            <Slider
-                                min={0}
-                                max={255}
-                                value={config.threshold}
-                                onChange={(value) => {
-                                    if (typeof value === "number") setConfig({ threshold: value });
-                                }}
-                                style={{ flex: 1 }}
-                            />
-                            <InputNumber
-                                min={0}
-                                max={255}
-                                value={config.threshold}
-                                onChange={(value) => {
-                                    if (typeof value === "number") setConfig({ threshold: value });
-                                }}
-                            />
-                        </Space>
+                        <Slider
+                            min={0}
+                            max={255}
+                            value={config.threshold}
+                            onChange={(value) => {
+                                if (typeof value === "number") setConfig({ threshold: value });
+                            }}
+                        />
                     </div>
                 </Space>
             </Form.Item>
 
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                TODO：将 withComments/numberFormat 真实传给 Rust 生成器
-            </Typography.Text>
         </Form>
     );
 }
-

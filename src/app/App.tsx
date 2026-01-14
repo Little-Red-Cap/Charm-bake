@@ -102,12 +102,14 @@ function FontTab() {
 
             <Footer
                 style={{
-                    padding: "8px 16px",
+                    padding: "4px 12px",
                     background: token.colorBgContainer,
                     borderTop: `1px solid ${token.colorBorder}`,
                 }}
             >
-                <StatusBar />
+                <div className="compactStatusBar">
+                    <StatusBar />
+                </div>
             </Footer>
         </Layout>
     );

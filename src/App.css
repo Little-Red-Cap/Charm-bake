@@ -78,3 +78,32 @@
 .workspaceTabs .ant-tabs-tabpane {
   height: 100%;
 }
+
+.compactLayout .ant-collapse {
+  background: transparent;
+}
+
+.compactLayout .ant-collapse > .ant-collapse-item > .ant-collapse-header {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.compactLayout .ant-collapse > .ant-collapse-item > .ant-collapse-content > .ant-collapse-content-box {
+  padding: 8px 12px;
+}
+
+.compactLayout .ant-form-item {
+  margin-bottom: 8px;
+}
+
+.compactLayout .ant-divider {
+  margin: 8px 0;
+}
+
+.compactLayout .ant-typography {
+  margin-bottom: 0;
+}
+
+.compactStatusBar .ant-space {
+  gap: 8px !important;
+}

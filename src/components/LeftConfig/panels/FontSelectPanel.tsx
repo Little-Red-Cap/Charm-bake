@@ -44,7 +44,7 @@ export default function FontSelectPanel() {
     };
 
     return (
-        <Form layout="vertical">
+        <Form layout="horizontal" labelCol={{ flex: "0 0 72px" }} wrapperCol={{ flex: "1 1 0" }}>
             <Form.Item label="字体来源">
                 <Radio.Group
                     value={config.fontSourceMode}
@@ -73,7 +73,7 @@ export default function FontSelectPanel() {
                     </Typography.Text>
                 </Form.Item>
             ) : (
-                <Form.Item label="字体文件路径">
+                <Form.Item label="文件路径">
                     <Space.Compact style={{ width: "100%" }}>
                         <Input
                             value={config.fontFilePath ?? ""}
@@ -87,5 +87,4 @@ export default function FontSelectPanel() {
         </Form>
     );
 }
-
 
