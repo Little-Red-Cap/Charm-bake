@@ -12,12 +12,12 @@ export default function StatusBar() {
             {s ? (
                 <>
                     <Typography.Text type="secondary">Glyphs: {s.glyphCount}</Typography.Text>
-                    <Typography.Text type="secondary">Ranges: {s.rangeCount}</Typography.Text>
+                    <Typography.Text type="secondary">Ranges: {s.rangeCount ?? "-"}</Typography.Text>
                     <Typography.Text type="secondary">Bitmap: {s.bitmapBytes} bytes</Typography.Text>
                     <Typography.Text type="secondary">Text: {s.textBytes} bytes</Typography.Text>
                 </>
             ) : (
-                <Typography.Text type="secondary">尚未生成</Typography.Text>
+                <Typography.Text type="secondary">No output yet</Typography.Text>
             )}
         </Space>
     );
