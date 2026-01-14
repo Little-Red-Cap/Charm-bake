@@ -11,6 +11,8 @@ use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
 use fontdue::{Font, FontSettings};
+use font_kit::source::SystemSource;
+use font_kit::handle::Handle;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "mode")]
@@ -115,6 +117,12 @@ struct GlyphData {
 }
 
 #[derive(Debug, Serialize)]
+struct SystemFontInfo {
+  family: String,
+  path: String,
+}
+
+#[derive(Debug, Serialize)]
 struct ExportResult {
   ok: bool,
   warnings: Vec<String>,
@@ -186,6 +194,36 @@ fn export_font(job: FontJob, out_dir: Option<String>, filename: String) -> Resul
     output_path,
   })
 }
+#[tauri::command]
+fn list_system_fonts() -> Result<Vec<SystemFontInfo>, String> {
+  let source = SystemSource::new();
+  let families = source.all_families()
+    .map_err(|e| format!("Failed to list system fonts: {}", e))?;
+
+  let mut out: Vec<SystemFontInfo> = Vec::new();
+  let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+
+  for family in families {
+    if !seen.insert(family.clone()) {
+      continue;
+    }
+    if let Ok(handles) = source.select_family_by_name(&family) {
+      for handle in handles.fonts().iter() {
+        if let Handle::Path { path, .. } = handle {
+          out.push(SystemFontInfo {
+            family: family.clone(),
+            path: path.to_string_lossy().to_string(),
+          });
+          break;
+        }
+      }
+    }
+  }
+
+  out.sort_by(|a, b| a.family.to_lowercase().cmp(&b.family.to_lowercase()));
+  Ok(out)
+}
+
 #[tauri::command]
 fn save_settings(app: tauri::AppHandle, dir: Option<String>, filename: String, json: String) -> Result<(), String> {
   let filename = sanitize_filename(&filename)?;
@@ -710,7 +748,7 @@ fn resolve_load_path(app: &tauri::AppHandle, path: Option<String>) -> Result<Pat
 fn main() {
   tauri::Builder::default()
       .plugin(tauri_plugin_dialog::init())
-      .invoke_handler(tauri::generate_handler![save_settings, load_settings, generate_font, export_font])
+      .invoke_handler(tauri::generate_handler![save_settings, load_settings, generate_font, export_font, list_system_fonts])
       .run(tauri::generate_context!())
       .expect("Failed to run Tauri application");
 }

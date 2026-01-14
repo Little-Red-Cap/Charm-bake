@@ -1,10 +1,37 @@
-import React from "react";
-import { Form, Input, Radio, Space, Button, Typography } from "antd";
+import React, { useEffect, useMemo, useState } from "react";
+import { Form, Input, Radio, Space, Button, Typography, Select } from "antd";
+import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useFontJobStore } from "../../../store/fontJob.store";
 
 export default function FontSelectPanel() {
     const { config, setConfig } = useFontJobStore();
+    const [systemFonts, setSystemFonts] = useState<Array<{ family: string; path: string }>>([]);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        let active = true;
+        const load = async () => {
+            setLoading(true);
+            try {
+                const result = await invoke<Array<{ family: string; path: string }>>("list_system_fonts");
+                if (active) setSystemFonts(result);
+            } catch (err) {
+                console.warn("Failed to load system fonts", err);
+            } finally {
+                if (active) setLoading(false);
+            }
+        };
+        load();
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    const fontOptions = useMemo(
+        () => systemFonts.map((f) => ({ label: f.family, value: f.path })),
+        [systemFonts]
+    );
 
     const pickSystemFontFile = async () => {
         const selected = await open({
@@ -39,17 +66,20 @@ export default function FontSelectPanel() {
             </Form.Item>
 
             {config.fontSourceMode === "system" ? (
-                <Form.Item label="系统字体（临时使用文件路径）">
-                    <Space.Compact style={{ width: "100%" }}>
-                        <Input
-                            value={config.systemFontName ?? ""}
-                            placeholder="选择系统字体文件（.ttf/.otf）"
-                            onChange={(e) => setConfig({ systemFontName: e.target.value, fontFilePath: null })}
-                        />
-                        <Button onClick={pickSystemFontFile}>选择文件</Button>
-                    </Space.Compact>
+                <Form.Item label="系统字体">
+                    <Select
+                        showSearch
+                        loading={loading}
+                        value={config.systemFontName ?? undefined}
+                        placeholder={loading ? "加载中..." : "选择系统字体"}
+                        options={fontOptions}
+                        onChange={(v) => setConfig({ systemFontName: v, fontFilePath: null })}
+                        filterOption={(input, option) =>
+                            (option?.label ?? "").toString().toLowerCase().includes(input.toLowerCase())
+                        }
+                    />
                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                        方案 A：暂用字体文件路径代替系统字体枚举。
+                        枚举系统字体（按名称显示，内部使用字体文件路径）。
                     </Typography.Text>
                 </Form.Item>
             ) : (
