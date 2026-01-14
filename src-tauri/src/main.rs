@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use base64::Engine;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
@@ -83,6 +83,9 @@ struct ExportResult {
   output_path: Option<String>,
 }
 
+const PREVIEW_MAX_GLYPHS: usize = 256;
+const PREVIEW_MAX_PIXELS_TOTAL: usize = 4 * 1024 * 1024; // 4MB raw grayscale
+
 #[tauri::command]
 fn generate_font(_job: FontJob) -> Result<GeneratedResult, String> {
   let _font = load_font_from_source(&_job.source)?;
@@ -91,8 +94,11 @@ fn generate_font(_job: FontJob) -> Result<GeneratedResult, String> {
     return Err("Invalid range: start must be <= end".to_string());
   }
 
-  let (codepoints, warnings) = collect_codepoints(&_job, &_font);
-  let (glyphs, stats) = build_preview(&_font, _job.size_px, &codepoints);
+  let (codepoint_map, mut warnings) = collect_codepoints(&_job, &_font);
+  let (glyphs, stats, truncated) = build_preview(&_font, _job.size_px, &codepoint_map);
+  if let Some((count, bytes)) = truncated {
+    warnings.push(format!("Preview truncated (glyphs={}, bytes={})", count, bytes));
+  }
 
   Ok(GeneratedResult {
     ok: true,
@@ -202,7 +208,7 @@ fn load_font_from_source(source: &FontSource) -> Result<Font, String> {
   }
 }
 
-fn collect_codepoints(job: &FontJob, font: &Font) -> (Vec<u32>, Vec<String>) {
+fn collect_codepoints(job: &FontJob, font: &Font) -> (BTreeMap<u32, u16>, Vec<String>) {
   let mut warnings = Vec::new();
   let mut requested: BTreeSet<u32> = BTreeSet::new();
 
@@ -219,7 +225,7 @@ fn collect_codepoints(job: &FontJob, font: &Font) -> (Vec<u32>, Vec<String>) {
   }
 
   let fallback = parse_fallback_char(job, &mut warnings);
-  let mut final_set: BTreeSet<u32> = BTreeSet::new();
+  let mut final_map: BTreeMap<u32, u16> = BTreeMap::new();
 
   for cp in requested {
     let ch = match char::from_u32(cp) {
@@ -227,32 +233,33 @@ fn collect_codepoints(job: &FontJob, font: &Font) -> (Vec<u32>, Vec<String>) {
       None => continue,
     };
 
-    if has_glyph(font, ch) {
-      final_set.insert(cp);
+    let glyph_index = font.lookup_glyph_index(ch);
+    if glyph_index != 0 {
+      final_map.insert(cp, glyph_index);
       continue;
     }
 
     match fallback {
-      Some(fb) if has_glyph(font, fb) => {
-        warnings.push(format!("Missing glyph U+{:04X}, using fallback U+{:04X}", cp, fb as u32));
-        final_set.insert(fb as u32);
-      }
       Some(fb) => {
-        warnings.push(format!(
-          "Missing glyph U+{:04X} and fallback U+{:04X} not found",
-          cp,
-          fb as u32
-        ));
-        final_set.insert(cp);
+        let fallback_index = font.lookup_glyph_index(fb);
+        if fallback_index != 0 {
+          warnings.push(format!("Missing glyph U+{:04X}, using fallback U+{:04X}", cp, fb as u32));
+          final_map.insert(cp, fallback_index);
+        } else {
+          warnings.push(format!(
+            "Missing glyph U+{:04X} and fallback U+{:04X} not found",
+            cp,
+            fb as u32
+          ));
+        }
       }
       None => {
         warnings.push(format!("Missing glyph U+{:04X}", cp));
-        final_set.insert(cp);
       }
     }
   }
 
-  (final_set.into_iter().collect(), warnings)
+  (final_map, warnings)
 }
 
 fn parse_fallback_char(job: &FontJob, warnings: &mut Vec<String>) -> Option<char> {
@@ -268,28 +275,41 @@ fn parse_fallback_char(job: &FontJob, warnings: &mut Vec<String>) -> Option<char
   Some(first)
 }
 
-fn has_glyph(font: &Font, ch: char) -> bool {
-  font.lookup_glyph_index(ch) != 0
-}
-
-fn build_preview(font: &Font, size_px: u32, codepoints: &[u32]) -> (Vec<PreviewGlyph>, GeneratedStats) {
-  let mut glyphs = Vec::with_capacity(codepoints.len());
-  let mut total_bytes: u32 = 0;
+fn build_preview(
+  font: &Font,
+  size_px: u32,
+  codepoint_map: &BTreeMap<u32, u16>,
+) -> (Vec<PreviewGlyph>, GeneratedStats, Option<(usize, usize)>) {
+  let mut glyphs = Vec::new();
+  let mut total_bytes: usize = 0;
   let mut max_w: u32 = 0;
   let mut max_h: u32 = 0;
+  let mut truncated: Option<(usize, usize)> = None;
 
-  for cp in codepoints {
-    let ch = match char::from_u32(*cp) {
-      Some(c) => c,
-      None => continue,
-    };
-    let (metrics, bitmap) = font.rasterize(ch, size_px as f32);
+  let mut seen: HashSet<u16> = HashSet::new();
+  let mut unique_indices: Vec<u16> = Vec::new();
+  let mut representative_cp: BTreeMap<u16, u32> = BTreeMap::new();
+  for (cp, glyph_index) in codepoint_map.iter() {
+    if seen.insert(*glyph_index) {
+      unique_indices.push(*glyph_index);
+      representative_cp.insert(*glyph_index, *cp);
+    }
+  }
+
+  for glyph_index in unique_indices.iter().take(PREVIEW_MAX_GLYPHS) {
+    let (metrics, bitmap) = font.rasterize_indexed(*glyph_index, size_px as f32);
+    let codepoint = representative_cp.get(glyph_index).copied().unwrap_or(0);
     let w = metrics.width as u32;
     let h = metrics.height as u32;
     let advance = metrics.advance_width as u32;
     let bitmap_b64 = BASE64_STANDARD.encode(&bitmap);
 
-    total_bytes = total_bytes.saturating_add(bitmap.len() as u32);
+    if total_bytes + bitmap.len() > PREVIEW_MAX_PIXELS_TOTAL {
+      truncated = Some((glyphs.len(), total_bytes));
+      break;
+    }
+
+    total_bytes += bitmap.len();
     if w > max_w {
       max_w = w;
     }
@@ -298,7 +318,7 @@ fn build_preview(font: &Font, size_px: u32, codepoints: &[u32]) -> (Vec<PreviewG
     }
 
     glyphs.push(PreviewGlyph {
-      codepoint: *cp,
+      codepoint,
       w,
       h,
       advance,
@@ -308,12 +328,16 @@ fn build_preview(font: &Font, size_px: u32, codepoints: &[u32]) -> (Vec<PreviewG
 
   let stats = GeneratedStats {
     glyph_count: glyphs.len() as u32,
-    bytes: total_bytes,
+    bytes: total_bytes as u32,
     max_w,
     max_h,
   };
 
-  (glyphs, stats)
+  if truncated.is_none() && unique_indices.len() > PREVIEW_MAX_GLYPHS {
+    truncated = Some((glyphs.len(), total_bytes));
+  }
+
+  (glyphs, stats, truncated)
 }
 
 fn sanitize_filename(filename: &str) -> Result<String, String> {
