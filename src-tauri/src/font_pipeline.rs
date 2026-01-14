@@ -39,6 +39,8 @@ pub struct FontJob {
     export_name: String,
     with_comments: bool,
     number_format: String,
+    #[serde(default = "default_threshold")]
+    threshold: u8,
 }
 
 #[derive(Debug, Serialize)]
@@ -72,6 +74,7 @@ pub struct PreviewGlyph {
     h: u32,
     advance: u32,
     bitmap_b64: String,
+    mono_b64: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -129,7 +132,9 @@ pub struct ExportFontArgs {
 
 const PREVIEW_MAX_GLYPHS: usize = 256;
 const PREVIEW_MAX_PIXELS_TOTAL: usize = 4 * 1024 * 1024; // 4MB raw grayscale
-const PACK_THRESHOLD: u8 = 128;
+fn default_threshold() -> u8 {
+    128
+}
 
 #[tauri::command]
 pub fn generate_font(job: FontJob) -> Result<GeneratedResult, String> {
@@ -145,8 +150,8 @@ pub fn generate_font(job: FontJob) -> Result<GeneratedResult, String> {
         .as_deref()
         .and_then(|s| s.trim().chars().next())
         .map(|c| c as u32);
-    let glyph_data = build_glyph_data(&font, job.size_px, &codepoint_map, fallback_cp);
-    let (glyphs, preview_truncated) = build_preview(&font, job.size_px, &codepoint_map);
+    let glyph_data = build_glyph_data(&font, job.size_px, &codepoint_map, fallback_cp, job.threshold);
+    let (glyphs, preview_truncated) = build_preview(&font, job.size_px, &codepoint_map, job.threshold);
     if let Some((count, bytes)) = preview_truncated {
         warnings.push(format!("Preview truncated (glyphs={}, bytes={})", count, bytes));
     }
@@ -207,7 +212,13 @@ pub fn export_font(
         .as_deref()
         .and_then(|s| s.trim().chars().next())
         .map(|c| c as u32);
-    let glyph_data = build_glyph_data(&font, args.job.size_px, &codepoint_map, fallback_cp);
+    let glyph_data = build_glyph_data(
+        &font,
+        args.job.size_px,
+        &codepoint_map,
+        fallback_cp,
+        args.job.threshold,
+    );
     let (line_height, baseline) = line_metrics(&font, args.job.size_px);
     let cpp_module = generate_cpp_module(&args.job, &glyph_data, line_height, baseline);
 
@@ -328,6 +339,7 @@ fn build_preview(
     font: &Font,
     size_px: u32,
     codepoint_map: &BTreeMap<u32, u16>,
+    threshold: u8,
 ) -> (Vec<PreviewGlyph>, Option<(usize, usize)>) {
     let mut glyphs = Vec::new();
     let mut total_bytes: usize = 0;
@@ -350,6 +362,8 @@ fn build_preview(
         let h = metrics.height as u32;
         let advance = metrics.advance_width as u32;
         let bitmap_b64 = BASE64_STANDARD.encode(&bitmap);
+        let (mono, _stride) = pack_bitmap_1b(&bitmap, w, h, threshold);
+        let mono_b64 = BASE64_STANDARD.encode(&mono);
 
         if total_bytes + bitmap.len() > PREVIEW_MAX_PIXELS_TOTAL {
             truncated = Some((glyphs.len(), total_bytes));
@@ -364,6 +378,7 @@ fn build_preview(
             h,
             advance,
             bitmap_b64,
+            mono_b64,
         });
     }
 
@@ -379,6 +394,7 @@ fn build_glyph_data(
     size_px: u32,
     codepoint_map: &BTreeMap<u32, u16>,
     fallback_cp: Option<u32>,
+    threshold: u8,
 ) -> GlyphData {
     let mut unique_indices: Vec<u16> = Vec::new();
     let mut seen: HashSet<u16> = HashSet::new();
@@ -406,7 +422,7 @@ fn build_glyph_data(
         if h > max_h {
             max_h = h;
         }
-        let (packed, _stride) = pack_bitmap_1b(&bitmap, w, h);
+        let (packed, _stride) = pack_bitmap_1b(&bitmap, w, h, threshold);
         let offset = bitmaps.len();
         let len = packed.len();
         bitmaps.extend_from_slice(&packed);
@@ -597,7 +613,7 @@ fn generate_cpp_module(job: &FontJob, data: &GlyphData, line_height: i32, baseli
     out
 }
 
-fn pack_bitmap_1b(gray: &[u8], w: u32, h: u32) -> (Vec<u8>, usize) {
+fn pack_bitmap_1b(gray: &[u8], w: u32, h: u32, threshold: u8) -> (Vec<u8>, usize) {
     let stride = ((w + 7) / 8) as usize;
     if w == 0 || h == 0 {
         return (Vec::new(), stride);
@@ -608,7 +624,7 @@ fn pack_bitmap_1b(gray: &[u8], w: u32, h: u32) -> (Vec<u8>, usize) {
         let src_row = (y as usize) * (w as usize);
         for x in 0..w {
             let src_idx = src_row + x as usize;
-            if gray[src_idx] >= PACK_THRESHOLD {
+            if gray[src_idx] >= threshold {
                 let byte_index = row_offset + (x as usize >> 3);
                 let bit_mask = 0x80u8 >> (x as u8 & 7);
                 packed[byte_index] |= bit_mask;

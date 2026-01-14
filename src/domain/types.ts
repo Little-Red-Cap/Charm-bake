@@ -20,6 +20,7 @@ export interface FontJobConfig {
     exportName: string;
     withComments: boolean;
     numberFormat: NumberFormat;
+    threshold: number;
 
     saveDir: string | null;
     saveFileName: string; // e.g. yahei_12.cppm
@@ -43,6 +44,7 @@ export interface PreviewGlyph {
     h: number;
     advance: number;
     bitmapB64: string;
+    monoB64?: string;
 }
 
 export interface FontPreview {

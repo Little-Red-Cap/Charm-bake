@@ -17,7 +17,7 @@ function codepointLabel(codepoint: number): string {
     return `U+${codepoint.toString(16).toUpperCase().padStart(4, "0")} '${ch}'`;
 }
 
-function GlyphCanvas({ glyph }: { glyph: PreviewGlyph }) {
+function GrayCanvas({ glyph }: { glyph: PreviewGlyph }) {
     const ref = useRef<HTMLCanvasElement | null>(null);
 
     useEffect(() => {
@@ -43,6 +43,56 @@ function GlyphCanvas({ glyph }: { glyph: PreviewGlyph }) {
             imageData.data[idx + 1] = 0;
             imageData.data[idx + 2] = 0;
             imageData.data[idx + 3] = v;
+        }
+        ctx.putImageData(imageData, 0, 0);
+    }, [glyph]);
+
+    const scale = 2;
+    return (
+        <canvas
+            ref={ref}
+            style={{
+                width: glyph.w * scale,
+                height: glyph.h * scale,
+                imageRendering: "pixelated",
+                background: "#fff",
+                border: "1px solid #f0f0f0",
+            }}
+        />
+    );
+}
+
+function MonoCanvas({ glyph }: { glyph: PreviewGlyph }) {
+    const ref = useRef<HTMLCanvasElement | null>(null);
+
+    useEffect(() => {
+        const canvas = ref.current;
+        if (!canvas) return;
+        const { w, h, monoB64 } = glyph;
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        if (w === 0 || h === 0 || !monoB64) {
+            ctx.clearRect(0, 0, w, h);
+            return;
+        }
+
+        const bytes = decodeBase64(monoB64);
+        const stride = Math.ceil(w / 8);
+        const imageData = ctx.createImageData(w, h);
+        for (let y = 0; y < h; y += 1) {
+            for (let x = 0; x < w; x += 1) {
+                const byteIndex = y * stride + (x >> 3);
+                const mask = 0x80 >> (x & 7);
+                const on = (bytes[byteIndex] & mask) !== 0;
+                const idx = (y * w + x) * 4;
+                imageData.data[idx] = 0;
+                imageData.data[idx + 1] = 0;
+                imageData.data[idx + 2] = 0;
+                imageData.data[idx + 3] = on ? 255 : 0;
+            }
         }
         ctx.putImageData(imageData, 0, 0);
     }, [glyph]);
@@ -88,7 +138,16 @@ export default function PreviewTab() {
                         <div style={{ fontSize: 12, color: "rgba(0, 0, 0, 0.65)" }}>
                             {codepointLabel(g.codepoint)}
                         </div>
-                        <GlyphCanvas glyph={g} />
+                        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                <div style={{ fontSize: 11, color: "rgba(0, 0, 0, 0.6)" }}>Gray</div>
+                                <GrayCanvas glyph={g} />
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                <div style={{ fontSize: 11, color: "rgba(0, 0, 0, 0.6)" }}>Mono</div>
+                                <MonoCanvas glyph={g} />
+                            </div>
+                        </div>
                     </div>
                 ))}
             </div>

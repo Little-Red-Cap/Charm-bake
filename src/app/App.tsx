@@ -43,6 +43,7 @@ const migrateSettings = (raw: any) => {
         if (typeof options.outputKind === "string") cfg.outputKind = options.outputKind;
         if (typeof options.withComments === "boolean") cfg.withComments = options.withComments;
         if (typeof options.numberFormat === "string") cfg.numberFormat = options.numberFormat;
+        if (typeof options.threshold === "number") cfg.threshold = options.threshold;
         if (typeof options.customChars === "string") cfg.customChars = options.customChars;
         if (typeof options.fallbackChar === "string") cfg.fallbackChar = options.fallbackChar;
         if (typeof options.saveDir === "string" || options.saveDir === null) cfg.saveDir = options.saveDir;

@@ -7,6 +7,7 @@ type BackendPreviewGlyph = {
     h: number;
     advance: number;
     bitmap_b64: string;
+    mono_b64?: string;
 };
 
 type BackendExportResult = {
@@ -61,12 +62,13 @@ function buildJob(cfg: FontJobConfig) {
             },
             custom_chars: normalizeText(cfg.customChars),
             fallback_char: normalizeText(cfg.fallbackChar),
-            output_kind: "c_array",
-            export_name: cfg.exportName,
-            with_comments: cfg.withComments,
-            number_format: cfg.numberFormat,
-        };
-    }
+        output_kind: "c_array",
+        export_name: cfg.exportName,
+        with_comments: cfg.withComments,
+        number_format: cfg.numberFormat,
+        threshold: cfg.threshold,
+    };
+}
 
     const path = (cfg.fontFilePath ?? "").trim();
     if (!path) {
@@ -86,6 +88,7 @@ function buildJob(cfg: FontJobConfig) {
         export_name: cfg.exportName,
         with_comments: cfg.withComments,
         number_format: cfg.numberFormat,
+        threshold: cfg.threshold,
     };
 }
 
@@ -104,6 +107,7 @@ export async function generateFont(cfg: FontJobConfig): Promise<FontGenerateResu
         h: g.h,
         advance: g.advance,
         bitmapB64: g.bitmap_b64,
+        monoB64: g.mono_b64,
     }));
 
     const code = result.c?.source ?? "";

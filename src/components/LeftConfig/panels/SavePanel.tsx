@@ -60,6 +60,7 @@ export default function SavePanel() {
                 numberFormat: config.numberFormat,
                 customChars: config.customChars,
                 fallbackChar: config.fallbackChar,
+                threshold: config.threshold,
                 fontSourceMode: config.fontSourceMode,
                 systemFontName: config.systemFontName,
                 fontFilePath: config.fontFilePath,
