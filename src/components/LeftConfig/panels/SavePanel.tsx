@@ -31,6 +31,7 @@ export default function SavePanel() {
         }
         const dir = (values.savePath || "").trim();
         const lastDir = values.rememberPath ? dir : "";
+        const lastFile = values.rememberPath ? filename : "";
 
         const buildOptions = values.includeOptions
             ? {
@@ -64,6 +65,7 @@ export default function SavePanel() {
             meta: {
                 rememberPath: values.rememberPath,
                 lastDir,
+                lastFile,
             },
         };
 
@@ -140,9 +142,6 @@ export default function SavePanel() {
                     </Form.Item>
                 </Form>
 
-                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                    TODO：接入 Tauri fs.writeFile
-                </Typography.Text>
             </Modal>
         </>
     );

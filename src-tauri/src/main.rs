@@ -9,6 +9,7 @@ use tauri::Manager;
 
 #[tauri::command]
 fn save_settings(app: tauri::AppHandle, dir: Option<String>, filename: String, json: String) -> Result<(), String> {
+  let filename = sanitize_filename(&filename)?;
   let file_path = resolve_save_path(&app, dir, filename)?;
   if let Some(parent) = file_path.parent() {
     fs::create_dir_all(parent)
@@ -68,6 +69,17 @@ fn resolve_save_path(
   Ok(target_dir.join(filename))
 }
 
+fn sanitize_filename(filename: &str) -> Result<String, String> {
+  let trimmed = filename.trim();
+  if trimmed.is_empty() {
+    return Ok("settings.json".to_string());
+  }
+  if trimmed.contains('/') || trimmed.contains('\\') {
+    return Err("Invalid filename".to_string());
+  }
+  Ok(trimmed.to_string())
+}
+
 #[tauri::command]
 fn load_settings(app: tauri::AppHandle, path: Option<String>) -> Result<String, String> {
   let file_path = resolve_load_path(&app, path)?;
@@ -81,9 +93,19 @@ fn load_settings(app: tauri::AppHandle, path: Option<String>) -> Result<String, 
     if let Some(true) = value.get("meta").and_then(|m| m.get("rememberPath")).and_then(|v| v.as_bool()) {
       if let Some(dir) = value.get("meta").and_then(|m| m.get("lastDir")).and_then(|v| v.as_str()) {
         if !dir.trim().is_empty() {
-          let candidate = PathBuf::from(dir).join("settings.json");
-          if candidate.exists() {
-            if let Ok(override_contents) = fs::read_to_string(&candidate) {
+          let meta = value.get("meta").unwrap_or(&Value::Null);
+          let last_file = meta.get("lastFile").and_then(|v| v.as_str()).unwrap_or("");
+          if !last_file.trim().is_empty() {
+            let candidate = PathBuf::from(dir).join(last_file);
+            if candidate.exists() {
+              if let Ok(override_contents) = fs::read_to_string(&candidate) {
+                return Ok(override_contents);
+              }
+            }
+          }
+          let fallback = PathBuf::from(dir).join("settings.json");
+          if fallback.exists() {
+            if let Ok(override_contents) = fs::read_to_string(&fallback) {
               return Ok(override_contents);
             }
           }
