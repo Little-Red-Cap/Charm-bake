@@ -12,7 +12,7 @@ const MOCK_SYSTEM_FONTS = [
 ];
 
 export default function FontSelectPanel() {
-    const { config, setConfig, applySuggestedNames } = useFontJobStore();
+    const { config, setConfig } = useFontJobStore();
 
     const fontOptions = useMemo(
         () => MOCK_SYSTEM_FONTS.map((f) => ({ label: f, value: f })),
@@ -58,10 +58,6 @@ export default function FontSelectPanel() {
                     </Typography.Text>
                 </Form.Item>
             )}
-
-            <Form.Item>
-                <Button onClick={() => applySuggestedNames()}>按当前字体/字号生成默认命名</Button>
-            </Form.Item>
         </Form>
     );
 }

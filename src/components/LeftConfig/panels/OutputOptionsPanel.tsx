@@ -1,9 +1,9 @@
 import React from "react";
-import { Form, Input, Radio, Checkbox, Space, Typography } from "antd";
+import { Form, Input, Radio, Checkbox, Space, Typography, Button } from "antd";
 import { useFontJobStore } from "../../../store/fontJob.store";
 
 export default function OutputOptionsPanel() {
-    const { config, setConfig } = useFontJobStore();
+    const { config, setConfig, applySuggestedNames } = useFontJobStore();
 
     return (
         <Form layout="vertical">
@@ -28,6 +28,9 @@ export default function OutputOptionsPanel() {
 
             <Form.Item label="导出字体对象名（export name）">
                 <Input value={config.exportName} onChange={(e) => setConfig({ exportName: e.target.value })} />
+            <Form.Item>
+                <Button onClick={() => applySuggestedNames()}>按当前字体字号生成默认命名</Button>
+            </Form.Item>
             </Form.Item>
 
             <Form.Item>
