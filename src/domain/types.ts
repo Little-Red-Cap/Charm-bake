@@ -1,0 +1,50 @@
+export type OutputKind = "cpp_module" | "cpp" | "c";
+export type NumberFormat = "hex" | "bin";
+
+export type FontSourceMode = "system" | "file";
+
+export interface FontJobConfig {
+    fontSourceMode: FontSourceMode;
+    systemFontName: string | null;
+    fontFilePath: string | null;
+
+    rangeStart: string; // 单字符，如 " "
+    rangeEnd: string;   // 单字符，如 "~"
+    customChars: string; // 任意字符串
+    fallbackChar: string; // 单字符，默认 "?"
+
+    sizePx: number;
+
+    outputKind: OutputKind;
+    moduleName: string;
+    exportName: string;
+    withComments: boolean;
+    numberFormat: NumberFormat;
+
+    saveDir: string | null;
+    saveFileName: string; // e.g. yahei_12.cppm
+}
+
+export interface FontGenerateStats {
+    glyphCount: number;
+    rangeCount: number;
+    bitmapBytes: number;
+    textBytes: number;
+    lineHeight?: number;
+    baseline?: number;
+    warnings?: string[];
+}
+
+export interface FontGenerateResult {
+    code: string;
+    stats: FontGenerateStats;
+}
+
+export type JobStatus = "idle" | "generating" | "success" | "error";
+
+export interface FontJobState {
+    config: FontJobConfig;
+    status: JobStatus;
+    result: FontGenerateResult | null;
+    error: string | null;
+}
