@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Form, Input, Space, Button, Typography, Modal, Checkbox } from "antd";
+import { open } from "@tauri-apps/plugin-dialog";
 import { useFontJobStore } from "../../../store/fontJob.store";
 
 type SaveSettingsValues = {
@@ -11,7 +12,7 @@ type SaveSettingsValues = {
 
 export default function SavePanel() {
     const { config } = useFontJobStore();
-    const [open, setOpen] = useState(false);
+    const [openModal, setOpenModal] = useState(false);
     const [form] = Form.useForm<SaveSettingsValues>();
 
     const doSaveSettings = (values: SaveSettingsValues) => {
@@ -21,20 +22,27 @@ export default function SavePanel() {
     const handleOk = async () => {
         const values = await form.validateFields();
         doSaveSettings(values);
-        setOpen(false);
+        setOpenModal(false);
+    };
+
+    const handleSelectPath = async () => {
+        const selected = await open({ directory: true, multiple: false });
+        if (!selected) return;
+        const path = Array.isArray(selected) ? selected[0] : selected;
+        form.setFieldsValue({ savePath: path });
     };
 
     return (
         <>
-            <Button type="primary" onClick={() => setOpen(true)}>
+            <Button type="primary" onClick={() => setOpenModal(true)}>
                 保存设置
             </Button>
 
             <Modal
                 title="保存设置"
-                open={open}
+                open={openModal}
                 onOk={handleOk}
-                onCancel={() => setOpen(false)}
+                onCancel={() => setOpenModal(false)}
                 okText="确定"
                 cancelText="取消"
             >
@@ -59,7 +67,7 @@ export default function SavePanel() {
                     <Form.Item label="保存路径" name="savePath">
                         <Space.Compact style={{ width: "100%" }}>
                             <Input readOnly placeholder="选择保存路径" />
-                            <Button>选择</Button>
+                            <Button onClick={handleSelectPath}>选择</Button>
                         </Space.Compact>
                     </Form.Item>
 
