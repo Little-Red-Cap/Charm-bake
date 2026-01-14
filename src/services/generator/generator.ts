@@ -105,12 +105,11 @@ export async function generateFont(cfg: FontJobConfig): Promise<FontGenerateResu
 export async function exportFont(cfg: FontJobConfig, outPath: string | null, filename: string): Promise<string> {
     const job = buildJob(cfg);
     const result = await invoke<BackendExportResult>("export_font", {
-        job,
-        out_path: outPath ?? undefined,
-        outPath: outPath ?? undefined,
-        out_dir: outPath ?? undefined,
-        outDir: outPath ?? undefined,
-        filename,
+        args: {
+            job,
+            out_path: outPath ?? undefined,
+            filename,
+        },
     });
     if (!result.ok) {
         const msg = result.warnings?.join("\n") || "Export failed";

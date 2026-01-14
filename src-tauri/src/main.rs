@@ -175,57 +175,48 @@ fn generate_font(job: FontJob) -> Result<GeneratedResult, String> {
   })
 }
 
+#[derive(Debug, Deserialize)]
+struct ExportFontArgs {
+  job: FontJob,
+  out_path: Option<String>,
+  filename: String,
+}
+
 #[tauri::command]
 fn export_font(
   app: tauri::AppHandle,
-  job: FontJob,
-  out_path: Option<String>,
-  out_dir: Option<String>,
-  filename: String,
+  args: ExportFontArgs,
 ) -> Result<ExportResult, String> {
-  println!(
-    "export_font: out_path={:?}, out_dir={:?}, filename={:?}",
-    out_path, out_dir, filename
-  );
-  let resolved_path = out_path
-    .as_deref()
-    .map(str::trim)
-    .filter(|s| !s.is_empty())
-    .map(|s| s.to_string())
-    .or_else(|| out_dir.clone());
-
-  let file_path = if let Some(p) = resolved_path.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+  let file_path = if let Some(p) = args.out_path.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
     let candidate = PathBuf::from(p);
     if candidate.exists() && candidate.is_dir() {
-      let filename = sanitize_filename(&filename)?;
+      let filename = sanitize_filename(&args.filename)?;
       candidate.join(filename)
     } else {
       candidate
     }
   } else {
-    let filename = sanitize_filename(&filename)?;
+    let filename = sanitize_filename(&args.filename)?;
     resolve_save_path(&app, None, filename)?
   };
   if let Some(parent) = file_path.parent() {
     fs::create_dir_all(parent)
       .map_err(|e| format!("Failed to create directory {}: {}", parent.display(), e))?;
   }
-  println!("export_font: resolved file_path={}", file_path.display());
-
-  let font = load_font_from_source(&job.source)?;
-  if job.range.start > job.range.end {
+  let font = load_font_from_source(&args.job.source)?;
+  if args.job.range.start > args.job.range.end {
     return Err("Invalid range: start must be <= end".to_string());
   }
 
-  let (codepoint_map, warnings) = collect_codepoints(&job, &font);
-  let fallback_cp = job
+  let (codepoint_map, warnings) = collect_codepoints(&args.job, &font);
+  let fallback_cp = args.job
     .fallback_char
     .as_deref()
     .and_then(|s| s.trim().chars().next())
     .map(|c| c as u32);
-  let glyph_data = build_glyph_data(&font, job.size_px, &codepoint_map, fallback_cp);
-  let (line_height, baseline) = line_metrics(&font, job.size_px);
-  let cpp_module = generate_cpp_module(&job, &glyph_data, line_height, baseline);
+  let glyph_data = build_glyph_data(&font, args.job.size_px, &codepoint_map, fallback_cp);
+  let (line_height, baseline) = line_metrics(&font, args.job.size_px);
+  let cpp_module = generate_cpp_module(&args.job, &glyph_data, line_height, baseline);
 
   write_atomic(&file_path, cpp_module.as_bytes())?;
 
