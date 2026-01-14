@@ -1,7 +1,9 @@
 import React from "react";
 import { Button, Space, Typography, Tooltip, message } from "antd";
 import { CopyOutlined, PlayCircleOutlined, SaveOutlined } from "@ant-design/icons";
+import { save } from "@tauri-apps/plugin-dialog";
 import { useFontJobStore } from "../../store/fontJob.store";
+import { exportFont } from "../../services/generator/generator";
 
 export default function TopBar() {
     const { config, status, result, error, generate } = useFontJobStore();
@@ -14,8 +16,20 @@ export default function TopBar() {
     };
 
     const onSave = async () => {
-        // TODO: Tauri dialog + fs write
-        msgApi.info("TODO: 保存功能将在接入 Tauri 后实现（选择任意目录写文件）");
+        if (!result?.code) return;
+        const selected = await save({
+            defaultPath: config.saveFileName || "font.cppm",
+            filters: [{ name: "C++ Module", extensions: ["cppm"] }],
+        });
+        if (!selected) return;
+        const normalized = selected.replace(/\\/g, "/");
+        const filename = normalized.split("/").pop() || config.saveFileName;
+        try {
+            const outputPath = await exportFont(config, selected, filename);
+            msgApi.success(`已保存：${outputPath || config.saveFileName}`);
+        } catch (e: any) {
+            msgApi.error(e?.message || String(e));
+        }
     };
 
     const subtitle =
