@@ -1,30 +1,81 @@
-import React from "react";
-import { Form, Input, Space, Button, Typography } from "antd";
+import React, { useState } from "react";
+import { Form, Input, Space, Button, Typography, Modal, Checkbox } from "antd";
 import { useFontJobStore } from "../../../store/fontJob.store";
 
+type SaveSettingsValues = {
+    configName: string;
+    savePath: string;
+    rememberPath: boolean;
+    includeOptions: boolean;
+};
+
 export default function SavePanel() {
-    const { config, setConfig } = useFontJobStore();
+    const { config } = useFontJobStore();
+    const [open, setOpen] = useState(false);
+    const [form] = Form.useForm<SaveSettingsValues>();
+
+    const doSaveSettings = (values: SaveSettingsValues) => {
+        console.log("save settings", values);
+    };
+
+    const handleOk = async () => {
+        const values = await form.validateFields();
+        doSaveSettings(values);
+        setOpen(false);
+    };
 
     return (
-        <Form layout="vertical">
-            <Form.Item label="保存目录（任意目录）">
-                <Space.Compact style={{ width: "100%" }}>
-                    <Input
-                        value={config.saveDir ?? ""}
-                        placeholder="TODO: 选择目录（Tauri dialog.open directory）"
-                        onChange={(e) => setConfig({ saveDir: e.target.value })}
-                    />
-                    <Button onClick={() => setConfig({ saveDir: "C:\\output" })}>选择目录</Button>
-                </Space.Compact>
-            </Form.Item>
+        <>
+            <Button type="primary" onClick={() => setOpen(true)}>
+                保存设置
+            </Button>
 
-            <Form.Item label="保存文件名">
-                <Input value={config.saveFileName} onChange={(e) => setConfig({ saveFileName: e.target.value })} />
-            </Form.Item>
+            <Modal
+                title="保存设置"
+                open={open}
+                onOk={handleOk}
+                onCancel={() => setOpen(false)}
+                okText="确定"
+                cancelText="取消"
+            >
+                <Form
+                    form={form}
+                    layout="vertical"
+                    initialValues={{
+                        configName: "settings.json",
+                        savePath: config.saveDir ?? "",
+                        rememberPath: true,
+                        includeOptions: true,
+                    }}
+                >
+                    <Form.Item
+                        label="配置名"
+                        name="configName"
+                        rules={[{ required: true, message: "请输入配置名" }]}
+                    >
+                        <Input placeholder="settings.json" />
+                    </Form.Item>
 
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                TODO：接入 Tauri fs.writeFile；并显示预计写入大小
-            </Typography.Text>
-        </Form>
+                    <Form.Item label="保存路径" name="savePath">
+                        <Space.Compact style={{ width: "100%" }}>
+                            <Input readOnly placeholder="选择保存路径" />
+                            <Button>选择</Button>
+                        </Space.Compact>
+                    </Form.Item>
+
+                    <Form.Item name="rememberPath" valuePropName="checked">
+                        <Checkbox>记住路径</Checkbox>
+                    </Form.Item>
+
+                    <Form.Item name="includeOptions" valuePropName="checked">
+                        <Checkbox>包含生成选项</Checkbox>
+                    </Form.Item>
+                </Form>
+
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                    TODO：接入 Tauri fs.writeFile
+                </Typography.Text>
+            </Modal>
+        </>
     );
 }
