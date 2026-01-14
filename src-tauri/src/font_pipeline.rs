@@ -568,8 +568,10 @@ fn generate_cpp_module(job: &FontJob, data: &GlyphData, line_height: i32, baseli
 
     out.push_str("static constexpr uint8_t glyph_bitmaps[] = {\n");
     for packed in &data.packed_glyphs {
-        let ch = display_char(packed.codepoint);
-        out.push_str(&format!("    // code {} ('{}')\n", packed.codepoint, ch));
+        if job.with_comments {
+            let ch = display_char(packed.codepoint);
+            out.push_str(&format!("    // code {} ('{}')\n", packed.codepoint, ch));
+        }
         let end = packed.offset + packed.len;
         for b in &data.bitmaps[packed.offset..end] {
             out.push_str(&format!("    {},\n", format_byte(*b, &job.number_format)));
@@ -579,9 +581,11 @@ fn generate_cpp_module(job: &FontJob, data: &GlyphData, line_height: i32, baseli
 
     out.push_str("static constexpr Glyph glyph_table[] = {\n");
     for (idx, entry) in data.glyphs.iter().enumerate() {
-        let cp = data.codepoints.get(idx).copied().unwrap_or(0);
-        let ch = display_char(cp);
-        out.push_str(&format!("    // {} (code {})\n", ch, cp));
+        if job.with_comments {
+            let cp = data.codepoints.get(idx).copied().unwrap_or(0);
+            let ch = display_char(cp);
+            out.push_str(&format!("    // {} (code {})\n", ch, cp));
+        }
         out.push_str(&format!(
             "    {{ glyph_bitmaps + {}, {}, {}, {}, {}, {} }},\n",
             entry.offset, entry.width, entry.height, entry.x_advance, entry.x_offset, entry.y_offset
