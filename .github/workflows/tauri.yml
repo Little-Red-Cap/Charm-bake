@@ -10,6 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        platform: [windows-latest]
         platform: [ubuntu-latest, macos-latest, windows-latest]
 
     runs-on: ${{ matrix.platform }}
@@ -35,6 +36,11 @@ jobs:
         with:
           workspaces: "./src-tauri -> target"
 
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0.4.0
+        with:
+          projectPath: .
+          tauriScript: cargo tauri
       - name: Linux deps
         if: matrix.platform == 'ubuntu-latest'
         run: |
