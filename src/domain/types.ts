@@ -27,17 +27,32 @@ export interface FontJobConfig {
 
 export interface FontGenerateStats {
     glyphCount: number;
-    rangeCount: number;
+    rangeCount?: number;
     bitmapBytes: number;
     textBytes: number;
+    maxW?: number;
+    maxH?: number;
     lineHeight?: number;
     baseline?: number;
     warnings?: string[];
 }
 
+export interface PreviewGlyph {
+    codepoint: number;
+    w: number;
+    h: number;
+    advance: number;
+    bitmapB64: string;
+}
+
+export interface FontPreview {
+    glyphs: PreviewGlyph[];
+}
+
 export interface FontGenerateResult {
     code: string;
     stats: FontGenerateStats;
+    preview?: FontPreview;
 }
 
 export type JobStatus = "idle" | "generating" | "success" | "error";
