@@ -15,6 +15,7 @@ function suggestNames(cfg: FontJobConfig) {
 }
 
 interface FontJobActions {
+    hydrateConfig: (cfg: Partial<FontJobConfig>) => void;
     setConfig: (patch: Partial<FontJobConfig>) => void;
     applySuggestedNames: () => void;
     generate: () => Promise<void>;
@@ -27,6 +28,11 @@ export const useFontJobStore = create<FontJobState & FontJobActions>((set, get) 
     status: "idle",
     result: null,
     error: null,
+
+    hydrateConfig: (cfg) => {
+        const next = { ...DEFAULT_CONFIG, ...get().config, ...cfg };
+        set({ config: next });
+    },
 
     setConfig: (patch) => {
         const next = { ...get().config, ...patch };

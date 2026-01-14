@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Form, Input, Space, Button, Typography, Modal, Checkbox } from "antd";
+import { Form, Input, Space, Button, Typography, Modal, Checkbox, message } from "antd";
+import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useFontJobStore } from "../../../store/fontJob.store";
 
@@ -15,14 +16,72 @@ export default function SavePanel() {
     const [openModal, setOpenModal] = useState(false);
     const [form] = Form.useForm<SaveSettingsValues>();
 
-    const doSaveSettings = (values: SaveSettingsValues) => {
-        console.log("save settings", values);
+    const getRangeString = () => {
+        const start = config.rangeStart?.codePointAt(0);
+        const end = config.rangeEnd?.codePointAt(0);
+        if (start == null || end == null) return "32-126";
+        return `${start}-${end}`;
+    };
+
+    const doSaveSettings = async (values: SaveSettingsValues) => {
+        let filename = (values.configName || "settings.json").trim() || "settings.json";
+        if (!filename.toLowerCase().endsWith(".json")) {
+            filename = `${filename}.json`;
+            form.setFieldsValue({ configName: filename });
+        }
+        const dir = (values.savePath || "").trim();
+        const lastDir = values.rememberPath ? dir : "";
+
+        const buildOptions = values.includeOptions
+            ? {
+                exportName: config.exportName,
+                outputKind: config.outputKind,
+                withComments: config.withComments,
+                numberFormat: config.numberFormat,
+                customChars: config.customChars,
+                fallbackChar: config.fallbackChar,
+                fontSourceMode: config.fontSourceMode,
+                systemFontName: config.systemFontName,
+                fontFilePath: config.fontFilePath,
+                saveDir: config.saveDir,
+                saveFileName: config.saveFileName,
+            }
+            : {};
+
+        const payload = {
+            version: 1,
+            font: {
+                family: config.fontSourceMode === "system" ? (config.systemFontName ?? "") : (config.fontFilePath ?? ""),
+                size: config.sizePx,
+            },
+            charset: {
+                range: getRangeString(),
+            },
+            build: {
+                name: config.moduleName,
+                options: buildOptions,
+            },
+            meta: {
+                rememberPath: values.rememberPath,
+                lastDir,
+            },
+        };
+
+        try {
+            await invoke("save_settings", { dir, filename, json: JSON.stringify(payload, null, 2) });
+            message.success("保存成功");
+            return true;
+        } catch (err) {
+            const msg = typeof err === "string" ? err : (err as Error)?.message || String(err);
+            message.error(`Save failed: ${msg}`);
+            return false;
+        }
     };
 
     const handleOk = async () => {
         const values = await form.validateFields();
-        doSaveSettings(values);
-        setOpenModal(false);
+        const ok = await doSaveSettings(values);
+        if (ok) setOpenModal(false);
     };
 
     const handleSelectPath = async () => {
