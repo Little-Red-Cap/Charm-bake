@@ -8,6 +8,12 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [windows-latest]
+
+    runs-on: ${{ matrix.platform }}
 
     steps:
       - name: Checkout
@@ -35,3 +41,19 @@ jobs:
         with:
           projectPath: .
           tauriScript: cargo tauri
+      - name: Linux deps
+        if: matrix.platform == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-3-dev \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v2
+        with:
+          projectPath: .
+          tauriScript: tauri

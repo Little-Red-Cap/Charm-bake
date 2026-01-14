@@ -46,10 +46,34 @@ function normalizeText(value: string | null | undefined): string | undefined {
 }
 
 function buildJob(cfg: FontJobConfig) {
+    if (cfg.fontSourceMode === "system") {
+        const family = (cfg.systemFontName ?? "").trim();
+        if (!family) {
+            throw new Error("请选择系统字体");
+        }
+        return {
+            source: { mode: "system", family },
+            module_name: cfg.moduleName,
+            size_px: cfg.sizePx,
+            range: {
+                start: toCodepoint(cfg.rangeStart, 32),
+                end: toCodepoint(cfg.rangeEnd, 126),
+            },
+            custom_chars: normalizeText(cfg.customChars),
+            fallback_char: normalizeText(cfg.fallbackChar),
+            output_kind: "c_array",
+            export_name: cfg.exportName,
+            with_comments: cfg.withComments,
+            number_format: cfg.numberFormat,
+        };
+    }
+
+    const path = (cfg.fontFilePath ?? "").trim();
+    if (!path) {
+        throw new Error("请选择字体文件路径");
+    }
     return {
-        source: cfg.fontSourceMode === "system"
-            ? { mode: "system", family: cfg.systemFontName ?? "" }
-            : { mode: "file", path: cfg.fontFilePath ?? "" },
+        source: { mode: "file", path },
         module_name: cfg.moduleName,
         size_px: cfg.sizePx,
         range: {
