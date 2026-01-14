@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Form, Input, Radio, Space, Button, Typography, Select } from "antd";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -8,9 +8,12 @@ export default function FontSelectPanel() {
     const { config, setConfig } = useFontJobStore();
     const [systemFonts, setSystemFonts] = useState<Array<{ family: string; path: string }>>([]);
     const [loading, setLoading] = useState(false);
+    const loadedRef = useRef(false);
 
     useEffect(() => {
         let active = true;
+        if (loadedRef.current) return;
+        loadedRef.current = true;
         const load = async () => {
             setLoading(true);
             try {
@@ -70,13 +73,13 @@ export default function FontSelectPanel() {
                     <Select
                         showSearch
                         loading={loading}
+                        virtual={false}
+                        dropdownStyle={{ maxHeight: 320, overflow: "auto" }}
                         value={config.systemFontName ?? undefined}
                         placeholder={loading ? "加载中..." : "选择系统字体"}
                         options={fontOptions}
                         onChange={(v) => setConfig({ systemFontName: v, fontFilePath: null })}
-                        filterOption={(input, option) =>
-                            (option?.label ?? "").toString().toLowerCase().includes(input.toLowerCase())
-                        }
+                        optionFilterProp="label"
                     />
                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                         枚举系统字体（按名称显示，内部使用字体文件路径）。
