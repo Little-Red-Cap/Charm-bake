@@ -31,6 +31,7 @@ const migrateSettings = (raw: any) => {
     if (version === 1) {
         const options = raw.build?.options ?? {};
         const cfg: any = {};
+        const meta = raw.meta ?? {};
         const range = parseRangeString(raw.charset?.range);
         if (range) {
             cfg.rangeStart = range.rangeStart;
@@ -46,6 +47,8 @@ const migrateSettings = (raw: any) => {
         if (typeof options.fallbackChar === "string") cfg.fallbackChar = options.fallbackChar;
         if (typeof options.saveDir === "string" || options.saveDir === null) cfg.saveDir = options.saveDir;
         if (typeof options.saveFileName === "string") cfg.saveFileName = options.saveFileName;
+        if (typeof meta.lastDir === "string") cfg.saveDir = meta.lastDir || null;
+        if (typeof meta.lastFile === "string" && meta.lastFile) cfg.saveFileName = meta.lastFile;
 
         const mode = options.fontSourceMode ?? DEFAULT_CONFIG.fontSourceMode;
         cfg.fontSourceMode = mode;
