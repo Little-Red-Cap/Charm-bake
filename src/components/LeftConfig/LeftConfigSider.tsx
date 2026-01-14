@@ -1,5 +1,4 @@
-import React from "react";
-import { Collapse, Divider } from "antd";
+﻿import { Collapse, Divider } from "antd";
 import FontSelectPanel from "./panels/FontSelectPanel";
 import CharsetPanel from "./panels/CharsetPanel";
 import SizePanel from "./panels/SizePanel";
@@ -26,3 +25,4 @@ export default function LeftConfigSider() {
         </div>
     );
 }
+

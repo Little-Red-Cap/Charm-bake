@@ -1,6 +1,5 @@
-import React from "react";
-import { Form, Input, Space, Typography } from "antd";
-import { useFontJobStore } from "../../../store/fontJob.store";
+﻿import { Form, Input, Space, Typography } from "antd";
+import { useFontJobStore } from "../../../store/fontjob.store";
 
 export default function CharsetPanel() {
     const { config, setConfig } = useFontJobStore();

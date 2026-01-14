@@ -1,8 +1,7 @@
-import React from "react";
-import { Button, Space, Typography, Tooltip, message } from "antd";
+﻿import { Button, Space, Typography, Tooltip, message } from "antd";
 import { CopyOutlined, PlayCircleOutlined, SaveOutlined } from "@ant-design/icons";
 import { save } from "@tauri-apps/plugin-dialog";
-import { useFontJobStore } from "../../store/fontJob.store";
+import { useFontJobStore } from "../../store/fontjob.store";
 import { exportFont } from "../../services/generator/generator";
 
 export default function TopBar() {

@@ -1,6 +1,5 @@
-import React from "react";
-import { Card, Descriptions, Empty, List } from "antd";
-import { useFontJobStore } from "../../../store/fontJob.store";
+﻿import { Card, Descriptions, Empty, List } from "antd";
+import { useFontJobStore } from "../../../store/fontjob.store";
 
 export default function StatsTab() {
     const { result } = useFontJobStore();

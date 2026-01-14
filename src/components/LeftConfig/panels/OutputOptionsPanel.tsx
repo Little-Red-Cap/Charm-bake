@@ -1,6 +1,5 @@
-﻿import React from "react";
-import { Form, Input, Radio, Checkbox, Space, Typography, Button, InputNumber, Slider } from "antd";
-import { useFontJobStore } from "../../../store/fontJob.store";
+﻿import { Form, Input, Radio, Checkbox, Space, Typography, Button, InputNumber, Slider } from "antd";
+import { useFontJobStore } from "../../../store/fontjob.store";
 
 export default function OutputOptionsPanel() {
     const { config, setConfig, applySuggestedNames } = useFontJobStore();

@@ -1,5 +1,4 @@
-import React from "react";
-import { Card, Typography } from "antd";
+﻿import { Card, Typography } from "antd";
 
 export default function DotMatrixTab() {
     return (
@@ -11,3 +10,4 @@ export default function DotMatrixTab() {
         </Card>
     );
 }
+

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Layout, Tabs, theme, message } from "antd";
 import { invoke } from "@tauri-apps/api/core";
 import TopBar from "../components/TopBar/TopBar";
@@ -6,7 +6,7 @@ import StatusBar from "../components/StatusBar/StatusBar";
 import LeftConfigSider from "../components/LeftConfig/LeftConfigSider";
 import RightWorkspace from "../components/RightWorkspace/RightWorkspace";
 import { DEFAULT_CONFIG } from "../domain/presets";
-import { useFontJobStore } from "../store/fontJob.store";
+import { useFontJobStore } from "../store/fontjob.store";
 import "../App.css";
 
 

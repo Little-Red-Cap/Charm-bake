@@ -1,8 +1,8 @@
-import React, { useState } from "react";
-import { Form, Input, Space, Button, Typography, Modal, Checkbox, message } from "antd";
+﻿import { useState } from "react";
+import { Form, Input, Space, Button, Modal, Checkbox, message } from "antd";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import { useFontJobStore } from "../../../store/fontJob.store";
+import { useFontJobStore } from "../../../store/fontjob.store";
 
 type SaveSettingsValues = {
     configName: string;

@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useRef } from "react";
+﻿import { useEffect, useMemo, useRef } from "react";
 import { Card, Empty } from "antd";
 import type { PreviewGlyph } from "../../../domain/types";
-import { useFontJobStore } from "../../../store/fontJob.store";
+import { useFontJobStore } from "../../../store/fontjob.store";
 
 function decodeBase64(b64: string): Uint8Array {
     const binary = atob(b64);

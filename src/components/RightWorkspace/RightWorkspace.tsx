@@ -1,5 +1,4 @@
-import React from "react";
-import { Tabs } from "antd";
+﻿import { Tabs } from "antd";
 import CodePreviewTab from "./tabs/CodePreviewTab";
 import StatsTab from "./tabs/StatsTab";
 import PreviewTab from "./tabs/PreviewTab";

@@ -1,6 +1,6 @@
-import React, { useMemo } from "react";
+﻿import { useMemo } from "react";
 import { Card, Typography } from "antd";
-import { useFontJobStore } from "../../../store/fontJob.store";
+import { useFontJobStore } from "../../../store/fontjob.store";
 
 function withLineNumbers(code: string): string {
     const lines = code.split(/\r?\n/);
@@ -29,3 +29,5 @@ export default function CodePreviewTab() {
         </Card>
     );
 }
+
+

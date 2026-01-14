@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Form, Input, Radio, Space, Button, Typography, Select } from "antd";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import { useFontJobStore } from "../../../store/fontJob.store";
+import { useFontJobStore } from "../../../store/fontjob.store";
 
 export default function FontSelectPanel() {
     const { config, setConfig } = useFontJobStore();
@@ -32,16 +32,6 @@ export default function FontSelectPanel() {
         () => systemFonts.map((f) => ({ label: f.family, value: f.family })),
         [systemFonts]
     );
-
-    const pickSystemFontFile = async () => {
-        const selected = await open({
-            multiple: false,
-            filters: [{ name: "Font", extensions: ["ttf", "otf"] }],
-        });
-        if (!selected) return;
-        const path = Array.isArray(selected) ? selected[0] : selected;
-        setConfig({ systemFontName: path, fontFilePath: null });
-    };
 
     const pickFontFile = async () => {
         const selected = await open({
@@ -97,3 +87,5 @@ export default function FontSelectPanel() {
         </Form>
     );
 }
+
+

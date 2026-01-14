@@ -1,6 +1,5 @@
-import React from "react";
-import { Form, InputNumber, Slider, Typography, Descriptions } from "antd";
-import { useFontJobStore } from "../../../store/fontJob.store";
+﻿import { Form, InputNumber, Slider, Typography, Descriptions } from "antd";
+import { useFontJobStore } from "../../../store/fontjob.store";
 
 export default function SizePanel() {
     const { config, setConfig, result } = useFontJobStore();

@@ -1,6 +1,5 @@
-import React from "react";
-import { Space, Typography } from "antd";
-import { useFontJobStore } from "../../store/fontJob.store";
+﻿import { Space, Typography } from "antd";
+import { useFontJobStore } from "../../store/fontjob.store";
 
 export default function StatusBar() {
     const { status, result } = useFontJobStore();
