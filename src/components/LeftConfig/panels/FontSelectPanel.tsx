@@ -1,23 +1,30 @@
-import React, { useMemo } from "react";
-import { Form, Input, Radio, Select, Space, Button, Typography } from "antd";
+import React from "react";
+import { Form, Input, Radio, Space, Button, Typography } from "antd";
+import { open } from "@tauri-apps/plugin-dialog";
 import { useFontJobStore } from "../../../store/fontJob.store";
-
-const MOCK_SYSTEM_FONTS = [
-    "Microsoft YaHei UI",
-    "SimSun",
-    "Consolas",
-    "Arial",
-    "JetBrains Mono",
-    "Noto Sans CJK SC",
-];
 
 export default function FontSelectPanel() {
     const { config, setConfig } = useFontJobStore();
 
-    const fontOptions = useMemo(
-        () => MOCK_SYSTEM_FONTS.map((f) => ({ label: f, value: f })),
-        []
-    );
+    const pickSystemFontFile = async () => {
+        const selected = await open({
+            multiple: false,
+            filters: [{ name: "Font", extensions: ["ttf", "otf"] }],
+        });
+        if (!selected) return;
+        const path = Array.isArray(selected) ? selected[0] : selected;
+        setConfig({ systemFontName: path, fontFilePath: null });
+    };
+
+    const pickFontFile = async () => {
+        const selected = await open({
+            multiple: false,
+            filters: [{ name: "Font", extensions: ["ttf", "otf"] }],
+        });
+        if (!selected) return;
+        const path = Array.isArray(selected) ? selected[0] : selected;
+        setConfig({ fontFilePath: path, systemFontName: null });
+    };
 
     return (
         <Form layout="vertical">
@@ -32,30 +39,29 @@ export default function FontSelectPanel() {
             </Form.Item>
 
             {config.fontSourceMode === "system" ? (
-                <Form.Item label="系统字体">
-                    <Select
-                        showSearch
-                        value={config.systemFontName ?? undefined}
-                        placeholder="选择系统字体（TODO: Tauri 枚举）"
-                        options={fontOptions}
-                        onChange={(v) => setConfig({ systemFontName: v, fontFilePath: null })}
-                    />
+                <Form.Item label="系统字体（临时使用文件路径）">
+                    <Space.Compact style={{ width: "100%" }}>
+                        <Input
+                            readOnly
+                            value={config.systemFontName ?? ""}
+                            placeholder="选择系统字体文件（.ttf/.otf）"
+                        />
+                        <Button onClick={pickSystemFontFile}>选择文件</Button>
+                    </Space.Compact>
+                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                        方案 A：暂用字体文件路径代替系统字体枚举。
+                    </Typography.Text>
                 </Form.Item>
             ) : (
                 <Form.Item label="字体文件路径">
                     <Space.Compact style={{ width: "100%" }}>
                         <Input
+                            readOnly
                             value={config.fontFilePath ?? ""}
-                            placeholder="选择 .ttf/.otf 文件（TODO: Tauri dialog.open）"
-                            onChange={(e) => setConfig({ fontFilePath: e.target.value, systemFontName: null })}
+                            placeholder="选择 .ttf/.otf 文件"
                         />
-                        <Button onClick={() => setConfig({ fontFilePath: "C:\\path\\to\\font.ttf", systemFontName: null })}>
-                            选择文件
-                        </Button>
+                        <Button onClick={pickFontFile}>选择文件</Button>
                     </Space.Compact>
-                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                        后续这里接 Tauri 文件对话框。
-                    </Typography.Text>
                 </Form.Item>
             )}
         </Form>

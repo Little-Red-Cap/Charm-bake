@@ -518,6 +518,8 @@ fn line_metrics(font: &Font, size_px: u32) -> (i32, i32) {
 fn format_byte(value: u8, number_format: &str) -> String {
   if number_format == "dec" {
     format!("{}", value)
+  } else if number_format == "bin" {
+    format!("0b{:08b}", value)
   } else {
     format!("0x{:02X}", value)
   }
