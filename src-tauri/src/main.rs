@@ -119,7 +119,6 @@ struct GlyphData {
 #[derive(Debug, Serialize)]
 struct SystemFontInfo {
   family: String,
-  path: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -229,31 +228,11 @@ fn export_font(
 #[tauri::command]
 fn list_system_fonts() -> Result<Vec<SystemFontInfo>, String> {
   let source = SystemSource::new();
-  let families = source.all_families()
+  let mut families = source
+    .all_families()
     .map_err(|e| format!("Failed to list system fonts: {}", e))?;
-
-  let mut out: Vec<SystemFontInfo> = Vec::new();
-  let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
-
-  for family in families {
-    if !seen.insert(family.clone()) {
-      continue;
-    }
-    if let Ok(handles) = source.select_family_by_name(&family) {
-      for handle in handles.fonts().iter() {
-        if let Handle::Path { path, .. } = handle {
-          out.push(SystemFontInfo {
-            family: family.clone(),
-            path: path.to_string_lossy().to_string(),
-          });
-          break;
-        }
-      }
-    }
-  }
-
-  out.sort_by(|a, b| a.family.to_lowercase().cmp(&b.family.to_lowercase()));
-  Ok(out)
+  families.sort_by(|a, b| a.to_lowercase().cmp(&b.to_lowercase()));
+  Ok(families.into_iter().map(|family| SystemFontInfo { family }).collect())
 }
 
 #[tauri::command]
@@ -327,10 +306,26 @@ fn load_font_from_source(source: &FontSource) -> Result<Font, String> {
         .map_err(|e| format!("Failed to parse font file {}: {}", path, e))
     }
     FontSource::System { family } => {
-      let bytes = fs::read(family)
-        .map_err(|e| format!("Failed to read font file {}: {}", family, e))?;
-      Font::from_bytes(bytes, FontSettings::default())
-        .map_err(|e| format!("Failed to parse font file {}: {}", family, e))
+      let source = SystemSource::new();
+      let family_handle = source
+        .select_family_by_name(family)
+        .map_err(|e| format!("Failed to find system font {}: {}", family, e))?;
+      let handle = family_handle
+        .fonts()
+        .first()
+        .ok_or_else(|| format!("No fonts found for family {}", family))?;
+      match handle {
+        Handle::Path { path, .. } => {
+          let bytes = fs::read(path)
+            .map_err(|e| format!("Failed to read font file {}: {}", path.display(), e))?;
+          Font::from_bytes(bytes, FontSettings::default())
+            .map_err(|e| format!("Failed to parse font file {}: {}", path.display(), e))
+        }
+        Handle::Memory { bytes, .. } => {
+          Font::from_bytes((**bytes).clone(), FontSettings::default())
+            .map_err(|e| format!("Failed to parse in-memory font {}: {}", family, e))
+        }
+      }
     }
   }
 }

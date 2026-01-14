@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Form, Input, Radio, Space, Button, Typography, Select } from "antd";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
@@ -6,18 +6,15 @@ import { useFontJobStore } from "../../../store/fontJob.store";
 
 export default function FontSelectPanel() {
     const { config, setConfig } = useFontJobStore();
-    const [systemFonts, setSystemFonts] = useState<Array<{ family: string; path: string }>>([]);
+    const [systemFonts, setSystemFonts] = useState<Array<{ family: string }>>([]);
     const [loading, setLoading] = useState(false);
-    const loadedRef = useRef(false);
 
     useEffect(() => {
         let active = true;
-        if (loadedRef.current) return;
-        loadedRef.current = true;
         const load = async () => {
             setLoading(true);
             try {
-                const result = await invoke<Array<{ family: string; path: string }>>("list_system_fonts");
+                const result = await invoke<Array<{ family: string }>>("list_system_fonts");
                 if (active) setSystemFonts(result);
             } catch (err) {
                 console.warn("Failed to load system fonts", err);
@@ -32,7 +29,7 @@ export default function FontSelectPanel() {
     }, []);
 
     const fontOptions = useMemo(
-        () => systemFonts.map((f) => ({ label: f.family, value: f.path })),
+        () => systemFonts.map((f) => ({ label: f.family, value: f.family })),
         [systemFonts]
     );
 
