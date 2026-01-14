@@ -36,3 +36,19 @@
   overflow: hidden;
   padding: 12px;
 }
+
+.appMain .ant-tabs {
+  height: 100%;
+}
+
+.appMain .ant-tabs-nav {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #fff;
+}
+
+.appMain .ant-tabs-content-holder {
+  height: 100%;
+  overflow: auto;
+}
