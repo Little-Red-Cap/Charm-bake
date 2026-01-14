@@ -58,3 +58,23 @@
   overflow: auto;
   padding: 12px;
 }
+
+.workspaceTabs {
+  height: 100%;
+}
+
+.workspaceTabs .ant-tabs {
+  height: 100%;
+}
+
+.workspaceTabs .ant-tabs-content-holder {
+  height: 100%;
+}
+
+.workspaceTabs .ant-tabs-content {
+  height: 100%;
+}
+
+.workspaceTabs .ant-tabs-tabpane {
+  height: 100%;
+}

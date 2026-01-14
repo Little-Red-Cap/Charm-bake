@@ -12,9 +12,9 @@ export default function CodePreviewTab() {
     }, [result?.code]);
 
     return (
-        <Card style={{ height: "100%" }}>
+        <Card style={{ height: "100%" }} styles={{ body: { height: "100%", padding: 0 } }}>
             <Editor
-                height="60vh"
+                height="100%"
                 language="cpp"
                 value={text}
                 options={{

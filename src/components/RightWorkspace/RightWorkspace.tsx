@@ -5,13 +5,15 @@ import PreviewTab from "./tabs/PreviewTab";
 
 export default function RightWorkspace() {
     return (
-        <Tabs
-            defaultActiveKey="preview"
-            items={[
-                { key: "preview", label: "Preview", children: <PreviewTab /> },
-                { key: "code", label: "Code", children: <CodePreviewTab /> },
-                { key: "stats", label: "Stats", children: <StatsTab /> },
-            ]}
-        />
+        <div className="workspaceTabs">
+            <Tabs
+                defaultActiveKey="preview"
+                items={[
+                    { key: "preview", label: "Preview", children: <PreviewTab /> },
+                    { key: "code", label: "Code", children: <CodePreviewTab /> },
+                    { key: "stats", label: "Stats", children: <StatsTab /> },
+                ]}
+            />
+        </div>
     );
 }
