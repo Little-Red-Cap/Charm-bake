@@ -86,10 +86,6 @@ function FontTab() {
 
     return (
         <Layout style={{ height: "100%" }}>
-            <Header style={{ padding: 0, background: token.colorBgContainer, borderBottom: `1px solid ${token.colorBorder}` }}>
-                <TopBar />
-            </Header>
-
             <Layout style={{ flex: 1 }}>
                 <Sider
                     width={360}
@@ -122,6 +118,7 @@ function ImageTab() {
 }
 
 export default function App() {
+    const [activeTab, setActiveTab] = useState("font");
     const [isReady, setIsReady] = useState(false);
     const hydrateConfig = useFontJobStore((s) => s.hydrateConfig);
 
@@ -159,8 +156,22 @@ export default function App() {
         return (
             <div className="app">
                 <header className="appHeader">
-                    <div className="appTitle">Charm-bake</div>
-                    <div className="appSubtitle">Font Builder</div>
+                    <div className="appHeaderBar">
+                        <div className="appTitle">Charm-bake</div>
+                        <div className="appHeaderTabs">
+                            <Tabs
+                                activeKey={activeTab}
+                                onChange={setActiveTab}
+                                items={[
+                                    { key: "font", label: "Font" },
+                                    { key: "image", label: "Image" },
+                                ]}
+                            />
+                        </div>
+                        <div className="appHeaderActions">
+                            <TopBar />
+                        </div>
+                    </div>
                 </header>
                 <main className="appMain">Loading...</main>
             </div>
@@ -170,18 +181,26 @@ export default function App() {
     return (
         <div className="app">
             <header className="appHeader">
-                <div className="appTitle">Charm-bake</div>
-                <div className="appSubtitle">Font Builder</div>
+                <div className="appHeaderBar">
+                    <div className="appTitle">Charm-bake</div>
+                    <div className="appHeaderTabs">
+                        <Tabs
+                            activeKey={activeTab}
+                            onChange={setActiveTab}
+                            items={[
+                                { key: "font", label: "Font" },
+                                { key: "image", label: "Image" },
+                            ]}
+                        />
+                    </div>
+                    <div className="appHeaderActions">
+                        <TopBar />
+                    </div>
+                </div>
             </header>
 
             <main className="appMain">
-                <Tabs
-                    defaultActiveKey="font"
-                    items={[
-                        { key: "font", label: "Font", children: <FontTab /> },
-                        { key: "image", label: "Image", children: <ImageTab /> },
-                    ]}
-                />
+                {activeTab === "font" ? <FontTab /> : <ImageTab />}
             </main>
         </div>
     );

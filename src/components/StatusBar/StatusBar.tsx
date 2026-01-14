@@ -2,7 +2,7 @@
 import { useFontJobStore } from "../../store/fontjob.store";
 
 export default function StatusBar() {
-    const { status, result } = useFontJobStore();
+    const { status, result, error } = useFontJobStore();
     const s = result?.stats;
 
     return (
@@ -18,6 +18,7 @@ export default function StatusBar() {
             ) : (
                 <Typography.Text type="secondary">No output yet</Typography.Text>
             )}
+            {error ? <Typography.Text type="danger">{error}</Typography.Text> : null}
         </Space>
     );
 }

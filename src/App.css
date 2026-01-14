@@ -13,13 +13,35 @@
 }
 
 .appHeader {
+  user-select: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.appHeaderBar {
   height: 44px;
   padding: 0 12px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  user-select: none;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  gap: 12px;
+}
+
+.appHeaderTabs {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.appHeaderTabs .ant-tabs-nav {
+  margin: 0;
+}
+
+.appHeaderTabs .ant-tabs-content-holder {
+  display: none;
+}
+
+.appHeaderActions {
+  display: flex;
+  align-items: center;
 }
 
 .appTitle {
@@ -33,22 +55,6 @@
 
 .appMain {
   flex: 1;
-  overflow: hidden;
-  padding: 12px;
-}
-
-.appMain .ant-tabs {
-  height: 100%;
-}
-
-.appMain .ant-tabs-nav {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: #fff;
-}
-
-.appMain .ant-tabs-content-holder {
-  height: 100%;
   overflow: auto;
+  padding: 12px;
 }
