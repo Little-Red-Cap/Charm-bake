@@ -79,7 +79,7 @@ const migrateSettings = (raw: any) => {
     return {};
 };
 
-const { Header, Sider, Content, Footer } = Layout;
+const { Sider, Content, Footer } = Layout;
 
 function FontTab() {
     const { token } = theme.useToken();
