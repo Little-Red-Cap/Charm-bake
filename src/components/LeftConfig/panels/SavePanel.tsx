@@ -12,7 +12,7 @@ type SaveSettingsValues = {
 };
 
 export default function SavePanel() {
-    const { config } = useFontJobStore();
+    const { config, setConfig } = useFontJobStore();
     const [openModal, setOpenModal] = useState(false);
     const [form] = Form.useForm<SaveSettingsValues>();
 
@@ -69,6 +69,7 @@ export default function SavePanel() {
 
         try {
             await invoke("save_settings", { dir, filename, json: JSON.stringify(payload, null, 2) });
+            setConfig({ saveDir: dir || null, saveFileName: filename });
             message.success("保存成功");
             return true;
         } catch (err) {
