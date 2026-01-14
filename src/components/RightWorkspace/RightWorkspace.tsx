@@ -2,16 +2,16 @@ import React from "react";
 import { Tabs } from "antd";
 import CodePreviewTab from "./tabs/CodePreviewTab";
 import StatsTab from "./tabs/StatsTab";
-import DotMatrixTab from "./tabs/DotMatrixTab";
+import PreviewTab from "./tabs/PreviewTab";
 
 export default function RightWorkspace() {
     return (
         <Tabs
-            defaultActiveKey="code"
+            defaultActiveKey="preview"
             items={[
-                { key: "code", label: "生成内容预览", children: <CodePreviewTab /> },
-                { key: "stats", label: "统计", children: <StatsTab /> },
-                { key: "dot", label: "点阵预览（TODO）", children: <DotMatrixTab /> },
+                { key: "preview", label: "Preview", children: <PreviewTab /> },
+                { key: "code", label: "Code", children: <CodePreviewTab /> },
+                { key: "stats", label: "Stats", children: <StatsTab /> },
             ]}
         />
     );
