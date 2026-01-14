@@ -36,6 +36,9 @@ jobs:
         with:
           workspaces: "./src-tauri -> target"
 
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --locked
+
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0.4.0
         with:
