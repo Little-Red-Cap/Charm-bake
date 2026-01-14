@@ -47,8 +47,13 @@ const migrateSettings = (raw: any) => {
         if (typeof options.fallbackChar === "string") cfg.fallbackChar = options.fallbackChar;
         if (typeof options.saveDir === "string" || options.saveDir === null) cfg.saveDir = options.saveDir;
         if (typeof options.saveFileName === "string") cfg.saveFileName = options.saveFileName;
-        if (typeof meta.lastDir === "string") cfg.saveDir = meta.lastDir || null;
-        if (typeof meta.lastFile === "string" && meta.lastFile) cfg.saveFileName = meta.lastFile;
+        if (cfg.saveDir == null && typeof meta.lastDir === "string") {
+            const d = meta.lastDir.trim();
+            cfg.saveDir = d ? d : null;
+        }
+        const currentFile = typeof cfg.saveFileName === "string" ? cfg.saveFileName.trim() : "";
+        const lastFile = typeof meta.lastFile === "string" ? meta.lastFile.trim() : "";
+        if (!currentFile && lastFile) cfg.saveFileName = lastFile;
 
         const mode = options.fontSourceMode ?? DEFAULT_CONFIG.fontSourceMode;
         cfg.fontSourceMode = mode;
