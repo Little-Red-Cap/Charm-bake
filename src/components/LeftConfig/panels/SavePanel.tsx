@@ -6,7 +6,7 @@ import { useFontJobStore } from "../../../store/fontJob.store";
 
 type SaveSettingsValues = {
     configName: string;
-    savePath: string;
+    saveDir: string;
     rememberPath: boolean;
     includeOptions: boolean;
 };
@@ -29,12 +29,31 @@ export default function SavePanel() {
             filename = `${filename}.json`;
             form.setFieldsValue({ configName: filename });
         }
-        const dir = (values.savePath || "").trim();
+        const dir = (values.saveDir || "").trim();
         const lastDir = values.rememberPath ? dir : "";
         const lastFile = values.rememberPath ? filename : "";
 
-        const buildOptions = values.includeOptions
-            ? {
+        const payload: any = {
+            version: 1,
+            font: {
+                family: config.fontSourceMode === "system" ? (config.systemFontName ?? "") : (config.fontFilePath ?? ""),
+                size: config.sizePx,
+            },
+            charset: {
+                range: getRangeString(),
+            },
+            build: {
+                name: config.moduleName,
+            },
+            meta: {
+                rememberPath: values.rememberPath,
+                lastDir,
+                lastFile,
+            },
+        };
+
+        if (values.includeOptions) {
+            payload.build.options = {
                 exportName: config.exportName,
                 outputKind: config.outputKind,
                 withComments: config.withComments,
@@ -46,28 +65,8 @@ export default function SavePanel() {
                 fontFilePath: config.fontFilePath,
                 saveDir: config.saveDir,
                 saveFileName: config.saveFileName,
-            }
-            : {};
-
-        const payload = {
-            version: 1,
-            font: {
-                family: config.fontSourceMode === "system" ? (config.systemFontName ?? "") : (config.fontFilePath ?? ""),
-                size: config.sizePx,
-            },
-            charset: {
-                range: getRangeString(),
-            },
-            build: {
-                name: config.moduleName,
-                options: buildOptions,
-            },
-            meta: {
-                rememberPath: values.rememberPath,
-                lastDir,
-                lastFile,
-            },
-        };
+            };
+        }
 
         try {
             await invoke("save_settings", { dir, filename, json: JSON.stringify(payload, null, 2) });
@@ -76,7 +75,7 @@ export default function SavePanel() {
             return true;
         } catch (err) {
             const msg = typeof err === "string" ? err : (err as Error)?.message || String(err);
-            message.error(`Save failed: ${msg}`);
+            message.error(`保存失败：${msg}`);
             return false;
         }
     };
@@ -91,7 +90,7 @@ export default function SavePanel() {
         const selected = await open({ directory: true, multiple: false });
         if (!selected) return;
         const path = Array.isArray(selected) ? selected[0] : selected;
-        form.setFieldsValue({ savePath: path });
+        form.setFieldsValue({ saveDir: path });
     };
 
     return (
@@ -113,7 +112,7 @@ export default function SavePanel() {
                     layout="vertical"
                     initialValues={{
                         configName: "settings.json",
-                        savePath: config.saveDir ?? "",
+                        saveDir: config.saveDir ?? "",
                         rememberPath: true,
                         includeOptions: true,
                     }}
@@ -126,7 +125,7 @@ export default function SavePanel() {
                         <Input placeholder="settings.json" />
                     </Form.Item>
 
-                    <Form.Item label="保存路径" name="savePath">
+                    <Form.Item label="保存路径" name="saveDir">
                         <Space.Compact style={{ width: "100%" }}>
                             <Input readOnly placeholder="选择保存路径" />
                             <Button onClick={handleSelectPath}>选择</Button>
