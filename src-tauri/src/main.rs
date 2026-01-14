@@ -93,19 +93,22 @@ fn load_settings(app: tauri::AppHandle, path: Option<String>) -> Result<String, 
     if let Some(true) = value.get("meta").and_then(|m| m.get("rememberPath")).and_then(|v| v.as_bool()) {
       if let Some(dir) = value.get("meta").and_then(|m| m.get("lastDir")).and_then(|v| v.as_str()) {
         if !dir.trim().is_empty() {
-          let meta = value.get("meta").unwrap_or(&Value::Null);
-          let last_file = meta.get("lastFile").and_then(|v| v.as_str()).unwrap_or("");
-          if !last_file.trim().is_empty() {
-            let candidate = PathBuf::from(dir).join(last_file);
-            if candidate.exists() {
-              if let Ok(override_contents) = fs::read_to_string(&candidate) {
+          let dir_path = PathBuf::from(dir);
+          if dir_path.exists() && dir_path.is_dir() {
+            let meta = value.get("meta").unwrap_or(&Value::Null);
+            let last_file = meta.get("lastFile").and_then(|v| v.as_str()).unwrap_or("");
+            if !last_file.trim().is_empty() {
+              let candidate = dir_path.join(last_file);
+              if candidate.exists() {
+                let override_contents = fs::read_to_string(&candidate)
+                  .map_err(|e| format!("Failed to read settings file {}: {}", candidate.display(), e))?;
                 return Ok(override_contents);
               }
             }
-          }
-          let fallback = PathBuf::from(dir).join("settings.json");
-          if fallback.exists() {
-            if let Ok(override_contents) = fs::read_to_string(&fallback) {
+            let fallback = dir_path.join("settings.json");
+            if fallback.exists() {
+              let override_contents = fs::read_to_string(&fallback)
+                .map_err(|e| format!("Failed to read settings file {}: {}", fallback.display(), e))?;
               return Ok(override_contents);
             }
           }
