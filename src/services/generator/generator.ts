@@ -55,7 +55,7 @@ export async function generateFont(cfg: FontJobConfig): Promise<FontGenerateResu
         output_kind: "c_array",
         export_name: cfg.exportName,
         with_comments: cfg.withComments,
-        number_format: cfg.numberFormat === "bin" ? "bin" : "hex",
+        number_format: cfg.numberFormat,
     };
 
     const result = await invoke<BackendResult>("generate_font", { job });

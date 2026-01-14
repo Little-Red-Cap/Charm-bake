@@ -45,8 +45,9 @@ export default function OutputOptionsPanel() {
                             value={config.numberFormat}
                             onChange={(e) => setConfig({ numberFormat: e.target.value })}
                         >
-                            <Radio value="hex">Hex</Radio>
                             <Radio value="bin">Bin</Radio>
+                            <Radio value="dec">Dec</Radio>
+                            <Radio value="hex">Hex</Radio>
                         </Radio.Group>
                     </div>
                 </Space>

@@ -1,5 +1,5 @@
 export type OutputKind = "cpp_module" | "cpp" | "c";
-export type NumberFormat = "hex" | "bin";
+export type NumberFormat = "bin" | "hex" | "dec";
 
 export type FontSourceMode = "system" | "file";
 

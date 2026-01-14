@@ -45,7 +45,7 @@ export const DEFAULT_CONFIG: FontJobConfig = {
     moduleName: "yahei_12",
     exportName: "yahei_12",
     withComments: true,
-    numberFormat: "hex",
+    numberFormat: "bin",
 
     saveDir: null,
     saveFileName: "yahei_12.cppm",

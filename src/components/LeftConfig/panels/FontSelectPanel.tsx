@@ -42,9 +42,9 @@ export default function FontSelectPanel() {
                 <Form.Item label="系统字体（临时使用文件路径）">
                     <Space.Compact style={{ width: "100%" }}>
                         <Input
-                            readOnly
                             value={config.systemFontName ?? ""}
                             placeholder="选择系统字体文件（.ttf/.otf）"
+                            onChange={(e) => setConfig({ systemFontName: e.target.value, fontFilePath: null })}
                         />
                         <Button onClick={pickSystemFontFile}>选择文件</Button>
                     </Space.Compact>
@@ -56,9 +56,9 @@ export default function FontSelectPanel() {
                 <Form.Item label="字体文件路径">
                     <Space.Compact style={{ width: "100%" }}>
                         <Input
-                            readOnly
                             value={config.fontFilePath ?? ""}
                             placeholder="选择 .ttf/.otf 文件"
+                            onChange={(e) => setConfig({ fontFilePath: e.target.value, systemFontName: null })}
                         />
                         <Button onClick={pickFontFile}>选择文件</Button>
                     </Space.Compact>
