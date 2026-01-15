@@ -1,4 +1,4 @@
-#root {
+﻿#root {
   width: 100vw;
   height: 100vh;
   margin: 0;
@@ -25,32 +25,73 @@
   gap: 12px;
 }
 
-.appHeaderTabs {
+.appHeaderActions {
+  display: flex;
+  align-items: center;
+}
+
+.appHeaderSpacer {
   flex: 1;
+}
+
+.appBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.appNav {
+  width: 64px;
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.appNav .ant-menu {
+  border-right: 0;
+  width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.appNavFooter {
+  padding: 8px;
   display: flex;
   justify-content: center;
 }
 
-.appHeaderTabs .ant-tabs-nav {
-  margin: 0;
+.appNavFooter .ant-btn {
+  width: auto;
 }
 
-.appHeaderTabs .ant-tabs-content-holder {
-  display: none;
+.navIconButton {
+  border: 0;
+  box-shadow: none;
 }
 
-.appHeaderActions {
-  display: flex;
-  align-items: center;
+.navIconButton:hover,
+.navIconButton:focus {
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .appTitle {
   font-weight: 700;
 }
 
+.appTitleWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .appSubtitle {
   opacity: 0.7;
   font-size: 12px;
+  font-weight: 500;
 }
 
 .appMain {

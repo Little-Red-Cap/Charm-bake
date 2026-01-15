@@ -1,5 +1,6 @@
 ﻿import { useState } from "react";
 import { Form, Input, Space, Button, Modal, Checkbox, message } from "antd";
+import { SaveOutlined } from "@ant-design/icons";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useFontJobStore } from "../../../store/fontjob.store";
@@ -99,9 +100,12 @@ export default function SavePanel() {
 
     return (
         <>
-            <Button type="primary" onClick={() => setOpenModal(true)}>
-                保存设置
-            </Button>
+            <Button
+                className="navIconButton"
+                shape="circle"
+                icon={<SaveOutlined />}
+                onClick={() => setOpenModal(true)}
+            />
 
             <Modal
                 title="保存设置"

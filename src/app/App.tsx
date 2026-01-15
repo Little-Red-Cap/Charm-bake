@@ -1,9 +1,19 @@
 ﻿import { useEffect, useState } from "react";
-import { Layout, Tabs, theme, message } from "antd";
+import { Button, Layout, Menu, Space, Tooltip, theme, message } from "antd";
+import {
+    CopyOutlined,
+    FontSizeOutlined,
+    LineChartOutlined,
+    PictureOutlined,
+    PlayCircleOutlined,
+    SaveOutlined,
+    TableOutlined,
+} from "@ant-design/icons";
 import { invoke } from "@tauri-apps/api/core";
 import TopBar from "../components/TopBar/TopBar";
 import StatusBar from "../components/StatusBar/StatusBar";
 import LeftConfigSider from "../components/LeftConfig/LeftConfigSider";
+import SavePanel from "../components/LeftConfig/panels/SavePanel";
 import RightWorkspace from "../components/RightWorkspace/RightWorkspace";
 import { DEFAULT_CONFIG } from "../domain/presets";
 import { useFontJobStore } from "../store/fontjob.store";
@@ -121,6 +131,51 @@ function ImageTab() {
     return <div>Image tools coming soon.</div>;
 }
 
+function SineTab() {
+    return <div>Sine generator coming soon.</div>;
+}
+
+function SevenSegTab() {
+    return <div>Seven-seg tools coming soon.</div>;
+}
+
+function HeaderActions({ activeTab }: { activeTab: string }) {
+    if (activeTab === "font") {
+        return <TopBar />;
+    }
+
+    return (
+        <Space>
+            <Tooltip title="生成预览">
+                <Button type="primary" icon={<PlayCircleOutlined />} disabled>
+                    生成预览
+                </Button>
+            </Tooltip>
+            <Button icon={<CopyOutlined />} disabled>
+                复制
+            </Button>
+            <Button icon={<SaveOutlined />} disabled>
+                保存
+            </Button>
+        </Space>
+    );
+}
+
+function headerLabel(activeTab: string): string {
+    switch (activeTab) {
+        case "font":
+            return "Font Builder";
+        case "image":
+            return "Image Tools";
+        case "sine":
+            return "Sine Generator";
+        case "sevenseg":
+            return "7-Seg Tools";
+        default:
+            return "";
+    }
+}
+
 export default function App() {
     const [activeTab, setActiveTab] = useState("font");
     const [isReady, setIsReady] = useState(false);
@@ -156,56 +211,51 @@ export default function App() {
         };
     }, [hydrateConfig]);
 
-    if (!isReady) {
-        return (
-            <div className="app">
-                <header className="appHeader">
-                    <div className="appHeaderBar">
-                        <div className="appTitle">Charm-bake</div>
-                        <div className="appHeaderTabs">
-                            <Tabs
-                                activeKey={activeTab}
-                                onChange={setActiveTab}
-                                items={[
-                                    { key: "font", label: "Font" },
-                                    { key: "image", label: "Image" },
-                                ]}
-                            />
-                        </div>
-                        <div className="appHeaderActions">
-                            <TopBar />
-                        </div>
-                    </div>
-                </header>
-                <main className="appMain">Loading...</main>
-            </div>
-        );
-    }
-
     return (
         <div className="app">
             <header className="appHeader">
                 <div className="appHeaderBar">
-                    <div className="appTitle">Charm-bake</div>
-                    <div className="appHeaderTabs">
-                        <Tabs
-                            activeKey={activeTab}
-                            onChange={setActiveTab}
-                            items={[
-                                { key: "font", label: "Font" },
-                                { key: "image", label: "Image" },
-                            ]}
-                        />
+                    <div className="appTitleWrap">
+                        <div className="appTitle">Charm-bake</div>
+                        <div className="appSubtitle">{headerLabel(activeTab)}</div>
                     </div>
+                    <div className="appHeaderSpacer" />
                     <div className="appHeaderActions">
-                        <TopBar />
+                        <HeaderActions activeTab={activeTab} />
                     </div>
                 </div>
             </header>
 
-            <main className="appMain">
-                {activeTab === "font" ? <FontTab /> : <ImageTab />}
-            </main>
+            <div className="appBody">
+                <aside className="appNav">
+                    <Menu
+                        mode="inline"
+                        inlineCollapsed
+                        selectedKeys={[activeTab]}
+                        onClick={(e) => setActiveTab(e.key)}
+                        items={[
+                            { key: "font", label: "Font", icon: <FontSizeOutlined /> },
+                            { key: "image", label: "Image", icon: <PictureOutlined /> },
+                            { key: "sine", label: "Sine", icon: <LineChartOutlined /> },
+                            { key: "sevenseg", label: "7-Seg", icon: <TableOutlined /> },
+                        ]}
+                    />
+                    <div className="appNavFooter">
+                        <SavePanel />
+                    </div>
+                </aside>
+                <main className="appMain">
+                    {!isReady
+                        ? "Loading..."
+                        : activeTab === "font"
+                            ? <FontTab />
+                            : activeTab === "image"
+                                ? <ImageTab />
+                                : activeTab === "sine"
+                                    ? <SineTab />
+                                    : <SevenSegTab />}
+                </main>
+            </div>
         </div>
     );
 }
