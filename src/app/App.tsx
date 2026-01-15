@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from "react";
-import { Button, Layout, Menu, Space, Tooltip, theme, message } from "antd";
+import { Button, ConfigProvider, Layout, Menu, Space, Tooltip, message, theme as antdTheme } from "antd";
 import {
     CopyOutlined,
     FontSizeOutlined,
@@ -17,6 +17,9 @@ import SavePanel from "../components/LeftConfig/panels/SavePanel";
 import RightWorkspace from "../components/RightWorkspace/RightWorkspace";
 import { DEFAULT_CONFIG } from "../domain/presets";
 import { useFontJobStore } from "../store/fontjob.store";
+import { useUiStore } from "../store/ui.store";
+import { t } from "../domain/i18n";
+import type { Language } from "../domain/i18n";
 import "../App.css";
 
 const parseRangeString = (range: string | undefined) => {
@@ -95,14 +98,15 @@ const migrateSettings = (raw: any) => {
 const { Sider, Content, Footer } = Layout;
 
 function FontTab() {
-    const { token } = theme.useToken();
+    const { token } = antdTheme.useToken();
+    const uiTheme = useUiStore((s) => s.theme);
 
     return (
         <Layout style={{ height: "100%" }}>
             <Layout style={{ flex: 1 }}>
                 <Sider
                     width={360}
-                    theme="light"
+                    theme={uiTheme}
                     style={{ borderRight: `1px solid ${token.colorBorder}`, overflow: "auto" }}
                 >
                     <LeftConfigSider />
@@ -129,49 +133,53 @@ function FontTab() {
 }
 
 function ImageTab() {
-    return <div>Image tools coming soon.</div>;
+    const language = useUiStore((s) => s.language);
+    return <div>{t(language, "imageTodo")}</div>;
 }
 
 function SineTab() {
-    return <div>Sine generator coming soon.</div>;
+    const language = useUiStore((s) => s.language);
+    return <div>{t(language, "sineTodo")}</div>;
 }
 
 function SevenSegTab() {
-    return <div>Seven-seg tools coming soon.</div>;
+    const language = useUiStore((s) => s.language);
+    return <div>{t(language, "sevenSegTodo")}</div>;
 }
 
 function HeaderActions({ activeTab }: { activeTab: string }) {
+    const language = useUiStore((s) => s.language);
     if (activeTab === "font") {
         return <TopBar />;
     }
 
     return (
         <Space>
-            <Tooltip title="生成预览">
+            <Tooltip title={t(language, "generatePreview")}>
                 <Button type="primary" icon={<PlayCircleOutlined />} disabled>
-                    生成预览
+                    {t(language, "generatePreview")}
                 </Button>
             </Tooltip>
             <Button icon={<CopyOutlined />} disabled>
-                复制
+                {t(language, "copy")}
             </Button>
             <Button icon={<SaveOutlined />} disabled>
-                保存
+                {t(language, "save")}
             </Button>
         </Space>
     );
 }
 
-function headerLabel(activeTab: string): string {
+function headerLabel(activeTab: string, language: Language): string {
     switch (activeTab) {
         case "font":
-            return "Font Builder";
+            return t(language, "headerFont");
         case "image":
-            return "Image Tools";
+            return t(language, "headerImage");
         case "sine":
-            return "Sine Generator";
+            return t(language, "headerSine");
         case "sevenseg":
-            return "7-Seg Tools";
+            return t(language, "headerSevenSeg");
         default:
             return "";
     }
@@ -181,6 +189,8 @@ export default function App() {
     const [activeTab, setActiveTab] = useState("font");
     const [isReady, setIsReady] = useState(false);
     const hydrateConfig = useFontJobStore((s) => s.hydrateConfig);
+    const uiTheme = useUiStore((s) => s.theme);
+    const language = useUiStore((s) => s.language);
 
     useEffect(() => {
         let active = true;
@@ -200,7 +210,7 @@ export default function App() {
                 hydrateConfig(next);
             } catch (err) {
                 const msg = typeof err === "string" ? err : (err as Error)?.message || String(err);
-                message.error(`Load failed: ${msg}`);
+                message.error(t(language, "loadFailed", { msg }));
             } finally {
                 if (active) setIsReady(true);
             }
@@ -212,51 +222,63 @@ export default function App() {
         };
     }, [hydrateConfig]);
 
-    return (
-        <div className="app">
-            <header className="appHeader">
-                <div className="appHeaderBar">
-                    <div className="appTitleWrap">
-                        <div className="appTitle">Charm-bake</div>
-                        <div className="appSubtitle">{headerLabel(activeTab)}</div>
-                    </div>
-                    <div className="appHeaderSpacer" />
-                    <div className="appHeaderActions">
-                        <HeaderActions activeTab={activeTab} />
-                    </div>
-                </div>
-            </header>
+    useEffect(() => {
+        document.documentElement.dataset.theme = uiTheme;
+        document.documentElement.dataset.lang = language;
+    }, [uiTheme, language]);
 
-            <div className="appBody">
-                <aside className="appNav">
-                    <Menu
-                        mode="inline"
-                        inlineCollapsed
-                        selectedKeys={[activeTab]}
-                        onClick={(e) => setActiveTab(e.key)}
-                        items={[
-                            { key: "font", label: "Font", icon: <FontSizeOutlined /> },
-                            { key: "image", label: "Image", icon: <PictureOutlined /> },
-                            { key: "sine", label: "Sine", icon: <LineChartOutlined /> },
-                            { key: "sevenseg", label: "7-Seg", icon: <TableOutlined /> },
-                        ]}
-                    />
-                    <div className="appNavFooter">
-                        <SavePanel />
+    return (
+        <ConfigProvider
+            theme={{
+                algorithm: uiTheme === "dark" ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+            }}
+        >
+            <div className="app">
+                <header className="appHeader">
+                    <div className="appHeaderBar">
+                        <div className="appTitleWrap">
+                            <div className="appTitle">Charm-bake</div>
+                            <div className="appSubtitle">{headerLabel(activeTab, language)}</div>
+                        </div>
+                        <div className="appHeaderSpacer" />
+                        <div className="appHeaderActions">
+                            <HeaderActions activeTab={activeTab} />
+                        </div>
                     </div>
-                </aside>
-                <main className="appMain">
-                    {!isReady
-                        ? "Loading..."
-                        : activeTab === "font"
-                            ? <FontTab />
-                            : activeTab === "image"
-                                ? <ImageTab />
-                                : activeTab === "sine"
-                                    ? <SineTab />
-                                    : <SevenSegTab />}
-                </main>
+                </header>
+
+                <div className="appBody">
+                    <aside className="appNav">
+                        <Menu
+                            mode="inline"
+                            inlineCollapsed
+                            theme={uiTheme}
+                            selectedKeys={[activeTab]}
+                            onClick={(e) => setActiveTab(e.key)}
+                            items={[
+                                { key: "font", label: t(language, "menuFont"), icon: <FontSizeOutlined /> },
+                                { key: "image", label: t(language, "menuImage"), icon: <PictureOutlined /> },
+                                { key: "sine", label: t(language, "menuSine"), icon: <LineChartOutlined /> },
+                                { key: "sevenseg", label: t(language, "menuSevenSeg"), icon: <TableOutlined /> },
+                            ]}
+                        />
+                        <div className="appNavFooter">
+                            <SavePanel />
+                        </div>
+                    </aside>
+                    <main className="appMain">
+                        {!isReady
+                            ? t(language, "loading")
+                            : activeTab === "font"
+                                ? <FontTab />
+                                : activeTab === "image"
+                                    ? <ImageTab />
+                                    : activeTab === "sine"
+                                        ? <SineTab />
+                                        : <SevenSegTab />}
+                    </main>
+                </div>
             </div>
-        </div>
+        </ConfigProvider>
     );
 }

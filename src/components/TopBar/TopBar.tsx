@@ -2,16 +2,19 @@
 import { CopyOutlined, PlayCircleOutlined, SaveOutlined } from "@ant-design/icons";
 import { save } from "@tauri-apps/plugin-dialog";
 import { useFontJobStore } from "../../store/fontjob.store";
+import { useUiStore } from "../../store/ui.store";
+import { t } from "../../domain/i18n";
 import { exportFont } from "../../services/generator/generator";
 
 export default function TopBar() {
     const { config, status, result, generate } = useFontJobStore();
+    const language = useUiStore((s) => s.language);
     const [msgApi, contextHolder] = message.useMessage();
 
     const onCopy = async () => {
         if (!result?.code) return;
         await navigator.clipboard.writeText(result.code);
-        msgApi.success("已复制到剪贴板");
+        msgApi.success(t(language, "copySuccess"));
     };
 
     const onSave = async () => {
@@ -25,7 +28,7 @@ export default function TopBar() {
         const filename = normalized.split("/").pop() || config.saveFileName;
         try {
             const outputPath = await exportFont(config, selected, filename);
-            msgApi.success(`已保存：${outputPath || config.saveFileName}`);
+            msgApi.success(t(language, "saveSuccess", { path: outputPath || config.saveFileName }));
         } catch (e: any) {
             msgApi.error(e?.message || String(e));
         }
@@ -36,23 +39,23 @@ export default function TopBar() {
             {contextHolder}
             <div style={{ display: "flex", alignItems: "center", height: "100%" }}>
                 <Space>
-                    <Tooltip title="生成预览">
+                    <Tooltip title={t(language, "generatePreview")}>
                         <Button
                             type="primary"
                             icon={<PlayCircleOutlined />}
                             loading={status === "generating"}
                             onClick={() => generate()}
                         >
-                            生成预览
+                            {t(language, "generatePreview")}
                         </Button>
                     </Tooltip>
 
                     <Button icon={<CopyOutlined />} disabled={!result?.code} onClick={onCopy}>
-                        复制
+                        {t(language, "copy")}
                     </Button>
 
                     <Button icon={<SaveOutlined />} disabled={!result?.code} onClick={onSave}>
-                        保存
+                        {t(language, "save")}
                     </Button>
                 </Space>
             </div>

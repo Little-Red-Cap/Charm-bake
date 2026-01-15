@@ -1,9 +1,11 @@
 ﻿import { useState } from "react";
-import { Form, Input, Space, Button, Modal, Checkbox, message } from "antd";
-import { SaveOutlined } from "@ant-design/icons";
+import { Form, Input, Space, Button, Modal, Checkbox, Divider, Radio, Typography, message } from "antd";
+import { SaveOutlined, SettingOutlined } from "@ant-design/icons";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useFontJobStore } from "../../../store/fontjob.store";
+import { useUiStore } from "../../../store/ui.store";
+import { t } from "../../../domain/i18n";
 
 type SaveSettingsValues = {
     configName: string;
@@ -14,6 +16,7 @@ type SaveSettingsValues = {
 
 export default function SavePanel() {
     const { config, setConfig } = useFontJobStore();
+    const { theme, language, setTheme, setLanguage } = useUiStore();
     const [openModal, setOpenModal] = useState(false);
     const [form] = Form.useForm<SaveSettingsValues>();
 
@@ -77,11 +80,11 @@ export default function SavePanel() {
         try {
             await invoke("save_settings", { dir, filename, json: JSON.stringify(payload, null, 2) });
             setConfig({ saveDir: dir || null, saveFileName: filename });
-            message.success("保存成功");
+            message.success(t(language, "saveSettingsSuccess"));
             return true;
         } catch (err) {
             const msg = typeof err === "string" ? err : (err as Error)?.message || String(err);
-            message.error(`保存失败：${msg}`);
+            message.error(t(language, "saveSettingsFail", { msg }));
             return false;
         }
     };
@@ -104,17 +107,22 @@ export default function SavePanel() {
             <Button
                 className="navIconButton"
                 shape="circle"
-                icon={<SaveOutlined />}
+                icon={<SettingOutlined />}
                 onClick={() => setOpenModal(true)}
             />
 
             <Modal
-                title="保存设置"
+                title={
+                    <Space size={8}>
+                        <SaveOutlined />
+                        <span>{t(language, "saveSettingsTitle")}</span>
+                    </Space>
+                }
                 open={openModal}
                 onOk={handleOk}
                 onCancel={() => setOpenModal(false)}
-                okText="确定"
-                cancelText="取消"
+                okText={t(language, "saveSettingsOk")}
+                cancelText={t(language, "saveSettingsCancel")}
             >
                 <Form
                     form={form}
@@ -127,26 +135,61 @@ export default function SavePanel() {
                     }}
                 >
                     <Form.Item
-                        label="配置名"
+                        label={t(language, "saveSettingsConfigName")}
                         name="configName"
-                        rules={[{ required: true, message: "请输入配置名" }]}
+                        rules={[{ required: true, message: t(language, "saveSettingsConfigName") }]}
                     >
                         <Input placeholder="settings.json" />
                     </Form.Item>
 
-                    <Form.Item label="保存路径" name="saveDir">
+                    <Form.Item label={t(language, "saveSettingsSaveDir")} name="saveDir">
                         <Space.Compact style={{ width: "100%" }}>
-                            <Input readOnly placeholder="选择保存路径" />
-                            <Button onClick={handleSelectPath}>选择</Button>
+                            <Input readOnly placeholder={t(language, "saveSettingsSaveDir")} />
+                            <Button onClick={handleSelectPath}>{t(language, "saveSettingsChoose")}</Button>
                         </Space.Compact>
                     </Form.Item>
 
                     <Form.Item name="rememberPath" valuePropName="checked">
-                        <Checkbox>记住路径</Checkbox>
+                        <Checkbox>{t(language, "saveSettingsRememberPath")}</Checkbox>
                     </Form.Item>
 
                     <Form.Item name="includeOptions" valuePropName="checked">
-                        <Checkbox>包含生成选项</Checkbox>
+                        <Checkbox>{t(language, "saveSettingsIncludeOptions")}</Checkbox>
+                    </Form.Item>
+
+                    <Divider />
+
+                    <Form.Item label={t(language, "saveSettingsUiSection")}>
+                        <Space direction="vertical" size={8} style={{ width: "100%" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <Typography.Text style={{ minWidth: 64 }}>
+                                    {t(language, "saveSettingsTheme")}
+                                </Typography.Text>
+                                <Radio.Group
+                                    value={theme}
+                                    onChange={(e) => setTheme(e.target.value)}
+                                    optionType="button"
+                                    buttonStyle="solid"
+                                >
+                                    <Radio.Button value="light">{t(language, "saveSettingsThemeLight")}</Radio.Button>
+                                    <Radio.Button value="dark">{t(language, "saveSettingsThemeDark")}</Radio.Button>
+                                </Radio.Group>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <Typography.Text style={{ minWidth: 64 }}>
+                                    {t(language, "saveSettingsLanguage")}
+                                </Typography.Text>
+                                <Radio.Group
+                                    value={language}
+                                    onChange={(e) => setLanguage(e.target.value)}
+                                    optionType="button"
+                                    buttonStyle="solid"
+                                >
+                                    <Radio.Button value="zh">{t(language, "languageZh")}</Radio.Button>
+                                    <Radio.Button value="en">{t(language, "languageEn")}</Radio.Button>
+                                </Radio.Group>
+                            </div>
+                        </Space>
                     </Form.Item>
                 </Form>
 
