@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Card, Collapse, Form, Input, InputNumber, Layout, Radio, Slider, Space, Tooltip, Typography, theme } from "antd";
+import Editor from "@monaco-editor/react";
 import { useUiStore } from "../../store/ui.store";
 import { t } from "../../domain/i18n";
 
@@ -618,10 +619,23 @@ export default function SinePage() {
                             </div>
                         </Card>
 
-                        <Card title={t(language, "sineOutputCodeTitle")}>
-                            <pre style={{ margin: 0, fontSize: 12, background: token.colorBgContainer, padding: 12 }}>
-                                {outputCode}
-                            </pre>
+                        <Card
+                            title={t(language, "sineOutputCodeTitle")}
+                            style={{ minHeight: 240 }}
+                            styles={{ body: { padding: 0 } }}
+                        >
+                            <Editor
+                                height="240px"
+                                language="cpp"
+                                value={outputCode}
+                                options={{
+                                    readOnly: true,
+                                    fontSize: 12,
+                                    minimap: { enabled: false },
+                                    scrollBeyondLastLine: false,
+                                    wordWrap: "off",
+                                }}
+                            />
                         </Card>
                     </Space>
                 </Layout.Content>
