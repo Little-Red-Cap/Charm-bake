@@ -17,6 +17,7 @@ import SavePanel from "../components/LeftConfig/panels/SavePanel";
 import RightWorkspace from "../components/RightWorkspace/RightWorkspace";
 import SevenSegPage from "../components/SevenSeg/SevenSegPage";
 import SinePage from "../components/Sine/SinePage";
+import ImagePage from "../components/Image/ImagePage";
 import { DEFAULT_CONFIG } from "../domain/presets";
 import { useFontJobStore } from "../store/fontjob.store";
 import { useUiStore } from "../store/ui.store";
@@ -135,8 +136,7 @@ function FontTab() {
 }
 
 function ImageTab() {
-    const language = useUiStore((s) => s.language);
-    return <div>{t(language, "imageTodo")}</div>;
+    return <ImagePage />;
 }
 
 function SineTab() {
