@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button, Card, Checkbox, Collapse, Form, Input, InputNumber, Layout, Radio, Select, Space, Typography, theme } from "antd";
 import { useUiStore } from "../../store/ui.store";
 import { t } from "../../domain/i18n";
@@ -79,10 +79,12 @@ function macroNameForChar(ch: string): string {
 function SevenSegSvg({
     active,
     onToggle,
+    highlight = false,
     size = 120,
 }: {
     active: Set<Segment>;
     onToggle?: (seg: Segment) => void;
+    highlight?: boolean;
     size?: number;
 }) {
     const w = size;
@@ -90,7 +92,7 @@ function SevenSegSvg({
     const t = Math.round(size * 0.16);
     const gap = Math.round(size * 0.08);
     const vLen = Math.round((h - 3 * t - 4 * gap) / 2);
-    const segColor = "#ff4d4f";
+    const segColor = highlight ? "#ff4d4f" : "#ff7875";
     const offColor = "rgba(0, 0, 0, 0.08)";
 
     const segmentRect = (seg: Segment, x: number, y: number, width: number, height: number) => {
@@ -111,7 +113,7 @@ function SevenSegSvg({
     };
 
     return (
-        <svg width={w} height={h}>
+        <svg width={w} height={h} style={{ filter: highlight ? "drop-shadow(0 0 6px rgba(255, 77, 79, 0.6))" : "none" }}>
             {segmentRect("a", t, 0, w - 2 * t, t)}
             {segmentRect("f", 0, t + gap, t, vLen)}
             {segmentRect("b", w - t, t + gap, t, vLen)}
@@ -144,7 +146,20 @@ export default function SevenSegPage() {
     const [bitOrder, setBitOrder] = useState<"msb" | "lsb">("msb");
     const [format, setFormat] = useState<"bin" | "dec" | "hex">("bin");
     const [outputStyle, setOutputStyle] = useState<"array" | "macro" | "enum">("array");
+    const [outputPrefix, setOutputPrefix] = useState("SEVENSEG");
+    const [arrayName, setArrayName] = useState("sevenseg_table");
+    const [charsetName, setCharsetName] = useState("sevenseg_charset");
+    const [enumName, setEnumName] = useState("SevenSegCode");
+    const [digitsName, setDigitsName] = useState("sevenseg_digits");
     const [scanMode, setScanMode] = useState<"static" | "dynamic">("static");
+    const [digitPolarity, setDigitPolarity] = useState<"active_high" | "active_low">("active_high");
+    const [digitOrderPreset, setDigitOrderPreset] = useState<"forward" | "reverse" | "custom">("forward");
+    const [digitCustomOrder, setDigitCustomOrder] = useState("");
+    const [digitOrder, setDigitOrder] = useState<number[]>([0, 1, 2, 3]);
+    const [digitOrderError, setDigitOrderError] = useState<string | null>(null);
+    const [activeDigit, setActiveDigit] = useState(0);
+    const [autoScan, setAutoScan] = useState(true);
+    const [scanInterval, setScanInterval] = useState(200);
     const [digitCount, setDigitCount] = useState(4);
     const [sampleText, setSampleText] = useState("0123");
     const [charset, setCharset] = useState<string[]>([...DIGITS]);
@@ -189,6 +204,72 @@ export default function SevenSegPage() {
         return padded.split("").map((ch) => (availableChars.includes(ch) ? ch : " "));
     }, [availableChars, digitCount, sampleText, scanMode]);
 
+    useEffect(() => {
+        if (scanMode !== "dynamic" || !autoScan) return;
+        const handle = setInterval(() => {
+            setActiveDigit((prev) => (prev + 1) % Math.max(1, digitCount));
+        }, scanInterval);
+        return () => clearInterval(handle);
+    }, [autoScan, digitCount, scanInterval, scanMode]);
+
+    useEffect(() => {
+        if (activeDigit >= digitCount) setActiveDigit(0);
+    }, [activeDigit, digitCount]);
+
+    const digitValues = useMemo(() => {
+        if (scanMode !== "dynamic") return [];
+        const digitBits = Math.max(1, digitCount);
+        return Array.from({ length: digitCount }, (_, i) => {
+            const mapped = digitOrder[i] ?? i;
+            let value = 1 << mapped;
+            if (digitPolarity === "active_low") {
+                const mask = (1 << digitBits) - 1;
+                value = mask ^ value;
+            }
+            return formatValue(value, format, digitBits);
+        });
+    }, [digitCount, digitOrder, digitPolarity, format, scanMode]);
+
+    const handleDigitOrderPreset = (value: "forward" | "reverse" | "custom") => {
+        setDigitOrderPreset(value);
+        if (value === "forward") {
+            setDigitOrder(Array.from({ length: digitCount }, (_, i) => i));
+            setDigitCustomOrder("");
+            setDigitOrderError(null);
+        } else if (value === "reverse") {
+            setDigitOrder(Array.from({ length: digitCount }, (_, i) => digitCount - 1 - i));
+            setDigitCustomOrder("");
+            setDigitOrderError(null);
+        } else {
+            const parsed = digitCustomOrder
+                .split(/[\s,]+/)
+                .map((v) => v.trim())
+                .filter(Boolean)
+                .map((v) => Number(v));
+            if (parsed.length === digitCount && parsed.every((v) => Number.isInteger(v) && v >= 0)) {
+                setDigitOrder(parsed);
+                setDigitOrderError(null);
+            } else {
+                setDigitOrderError(t(language, "sevenSegDigitOrderHint"));
+            }
+        }
+    };
+
+    const handleDigitCustomOrder = (value: string) => {
+        setDigitCustomOrder(value);
+        const parsed = value
+            .split(/[\s,]+/)
+            .map((v) => v.trim())
+            .filter(Boolean)
+            .map((v) => Number(v));
+        if (parsed.length === digitCount && parsed.every((v) => Number.isInteger(v) && v >= 0)) {
+            setDigitOrder(parsed);
+            setDigitOrderError(null);
+        } else {
+            setDigitOrderError(t(language, "sevenSegDigitOrderHint"));
+        }
+    };
+
     const segmentsForChar = (ch: string): Segment[] => overrides[ch] ?? BASE_PATTERNS[ch] ?? [];
 
     const onToggleSegment = (seg: Segment) => {
@@ -226,18 +307,18 @@ export default function SevenSegPage() {
 
         let body: string[] = [];
         if (outputStyle === "macro") {
-            body = values.map((entry) => `#define SEVENSEG_${macroNameForChar(entry.ch)} ${formatValue(entry.value, format, bits)}`);
+            body = values.map((entry) => `#define ${outputPrefix}_${macroNameForChar(entry.ch)} ${formatValue(entry.value, format, bits)}`);
         } else if (outputStyle === "enum") {
             body = [
-                "enum SevenSegCode {",
-                ...values.map((entry) => `  SEVENSEG_${macroNameForChar(entry.ch)} = ${formatValue(entry.value, format, bits)},`),
+                `enum ${enumName} {`,
+                ...values.map((entry) => `  ${outputPrefix}_${macroNameForChar(entry.ch)} = ${formatValue(entry.value, format, bits)},`),
                 "};",
             ];
         } else {
             const charsetString = values.map((entry) => entry.ch).join("");
             body = [
-                `static const char sevenseg_charset[] = "${charsetString}";`,
-                "static const uint8_t sevenseg_table[] = {",
+                `static const char ${charsetName}[] = "${charsetString}";`,
+                `static const uint8_t ${arrayName}[] = {`,
                 ...values.map((entry) => `  /* ${entry.ch} */ ${formatValue(entry.value, format, bits)},`),
                 "};",
             ];
@@ -247,14 +328,36 @@ export default function SevenSegPage() {
         if (scanMode === "dynamic") {
             const digitBits = Math.max(1, digitCount);
             const digitLines = Array.from({ length: digitCount }, (_, i) => {
-                const value = 1 << i;
+                const mapped = digitOrder[i] ?? i;
+                let value = 1 << mapped;
+                if (digitPolarity === "active_low") {
+                    const mask = (1 << digitBits) - 1;
+                    value = mask ^ value;
+                }
                 return `  ${formatValue(value, format, digitBits)},`;
             });
-            tail.push("static const uint8_t sevenseg_digits[] = {", ...digitLines, "};");
+            tail.push(`static const uint8_t ${digitsName}[] = {`, ...digitLines, "};");
         }
 
         return [...header, "", ...body, ...(tail.length ? ["", ...tail] : [])].join("\n");
-    }, [availableChars, bitOrder, digitCount, format, outputStyle, overrides, polarity, scanMode, segmentOrder]);
+    }, [
+        availableChars,
+        bitOrder,
+        digitCount,
+        digitOrder,
+        digitPolarity,
+        format,
+        outputStyle,
+        outputPrefix,
+        arrayName,
+        charsetName,
+        enumName,
+        digitsName,
+        overrides,
+        polarity,
+        scanMode,
+        segmentOrder,
+    ]);
 
     return (
         <Layout style={{ height: "100%" }}>
@@ -330,6 +433,44 @@ export default function SevenSegPage() {
                                                 </Radio.Group>
                                             </Form.Item>
 
+                                            <Form.Item label={t(language, "sevenSegOutputNames")}>
+                                                <Space direction="vertical" style={{ width: "100%" }}>
+                                                    <Input
+                                                        value={outputPrefix}
+                                                        onChange={(e) => setOutputPrefix(e.target.value)}
+                                                        placeholder={t(language, "sevenSegOutputPrefix")}
+                                                    />
+                                                    {outputStyle === "array" ? (
+                                                        <>
+                                                            <Input
+                                                                value={charsetName}
+                                                                onChange={(e) => setCharsetName(e.target.value)}
+                                                                placeholder={t(language, "sevenSegCharsetName")}
+                                                            />
+                                                            <Input
+                                                                value={arrayName}
+                                                                onChange={(e) => setArrayName(e.target.value)}
+                                                                placeholder={t(language, "sevenSegArrayName")}
+                                                            />
+                                                        </>
+                                                    ) : null}
+                                                    {outputStyle === "enum" ? (
+                                                        <Input
+                                                            value={enumName}
+                                                            onChange={(e) => setEnumName(e.target.value)}
+                                                            placeholder={t(language, "sevenSegEnumName")}
+                                                        />
+                                                    ) : null}
+                                                    {scanMode === "dynamic" ? (
+                                                        <Input
+                                                            value={digitsName}
+                                                            onChange={(e) => setDigitsName(e.target.value)}
+                                                            placeholder={t(language, "sevenSegDigitsName")}
+                                                        />
+                                                    ) : null}
+                                                </Space>
+                                            </Form.Item>
+
                                             <Form.Item label={t(language, "sevenSegScanMode")}>
                                                 <Radio.Group value={scanMode} onChange={(e) => setScanMode(e.target.value)}>
                                                     <Radio value="static">{t(language, "sevenSegScanStatic")}</Radio>
@@ -339,6 +480,36 @@ export default function SevenSegPage() {
 
                                             {scanMode === "dynamic" ? (
                                                 <>
+                                                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                                        {t(language, "sevenSegScanSection")}
+                                                    </Typography.Text>
+                                                    <Form.Item label={t(language, "sevenSegSampleText")}>
+                                                        <Input
+                                                            value={sampleText}
+                                                            onChange={(e) => setSampleText(e.target.value)}
+                                                            placeholder={t(language, "sevenSegSamplePlaceholder")}
+                                                        />
+                                                    </Form.Item>
+                                                    <Form.Item label={t(language, "sevenSegScanAuto")}>
+                                                        <Radio.Group value={autoScan ? "on" : "off"} onChange={(e) => setAutoScan(e.target.value === "on")}>
+                                                            <Radio value="on">{t(language, "sevenSegScanAutoOn")}</Radio>
+                                                            <Radio value="off">{t(language, "sevenSegScanAutoOff")}</Radio>
+                                                        </Radio.Group>
+                                                    </Form.Item>
+                                                    <Form.Item label={t(language, "sevenSegScanInterval")}>
+                                                        <InputNumber
+                                                            min={50}
+                                                            max={1000}
+                                                            step={10}
+                                                            value={scanInterval}
+                                                            onChange={(v) => setScanInterval(Number(v || 200))}
+                                                            style={{ width: "100%" }}
+                                                            addonAfter="ms"
+                                                        />
+                                                    </Form.Item>
+                                                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                                        {t(language, "sevenSegDigitSection")}
+                                                    </Typography.Text>
                                                     <Form.Item label={t(language, "sevenSegDigitCount")}>
                                                         <InputNumber
                                                             min={1}
@@ -348,11 +519,46 @@ export default function SevenSegPage() {
                                                             style={{ width: "100%" }}
                                                         />
                                                     </Form.Item>
-                                                    <Form.Item label={t(language, "sevenSegSampleText")}>
-                                                        <Input
-                                                            value={sampleText}
-                                                            onChange={(e) => setSampleText(e.target.value)}
-                                                            placeholder={t(language, "sevenSegSamplePlaceholder")}
+                                                    <Form.Item label={t(language, "sevenSegDigitPolarity")}>
+                                                        <Radio.Group
+                                                            value={digitPolarity}
+                                                            onChange={(e) => setDigitPolarity(e.target.value)}
+                                                        >
+                                                            <Radio value="active_high">{t(language, "sevenSegDigitActiveHigh")}</Radio>
+                                                            <Radio value="active_low">{t(language, "sevenSegDigitActiveLow")}</Radio>
+                                                        </Radio.Group>
+                                                    </Form.Item>
+                                                    <Form.Item label={t(language, "sevenSegDigitOrder")}>
+                                                        <Radio.Group
+                                                            value={digitOrderPreset}
+                                                            onChange={(e) => handleDigitOrderPreset(e.target.value)}
+                                                        >
+                                                            <Radio value="forward">{t(language, "sevenSegOrderPresetForward")}</Radio>
+                                                            <Radio value="reverse">{t(language, "sevenSegOrderPresetReverse")}</Radio>
+                                                            <Radio value="custom">{t(language, "sevenSegOrderCustom")}</Radio>
+                                                        </Radio.Group>
+                                                        {digitOrderPreset === "custom" ? (
+                                                            <Input
+                                                                value={digitCustomOrder}
+                                                                onChange={(e) => handleDigitCustomOrder(e.target.value)}
+                                                                placeholder={t(language, "sevenSegDigitOrderPlaceholder")}
+                                                                style={{ marginTop: 8 }}
+                                                            />
+                                                        ) : null}
+                                                        {digitOrderError ? (
+                                                            <Typography.Text type="danger" style={{ fontSize: 12 }}>
+                                                                {digitOrderError}
+                                                            </Typography.Text>
+                                                        ) : null}
+                                                    </Form.Item>
+                                                    <Form.Item label={t(language, "sevenSegActiveDigit")}>
+                                                        <InputNumber
+                                                            min={1}
+                                                            max={digitCount}
+                                                            value={Math.min(activeDigit + 1, digitCount)}
+                                                            disabled={autoScan}
+                                                            onChange={(v) => setActiveDigit(Math.max(0, Number(v || 1) - 1))}
+                                                            style={{ width: "100%" }}
                                                         />
                                                     </Form.Item>
                                                 </>
@@ -400,14 +606,35 @@ export default function SevenSegPage() {
                     <Space direction="vertical" size="large" style={{ width: "100%" }}>
                         <Card title={t(language, "sevenSegPreviewTitle")}>
                             <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
-                                {previewChars.map((ch, index) => (
-                                    <div key={`${ch}-${index}`} style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                                        <SevenSegSvg active={new Set(segmentsForChar(ch))} size={80} />
-                                        <Typography.Text type="secondary" style={{ marginTop: 4 }}>
-                                            {scanMode === "dynamic" ? `${index + 1}` : ch || " "}
-                                        </Typography.Text>
-                                    </div>
-                                ))}
+                                {previewChars.map((ch, index) => {
+                                    const isActive = scanMode === "dynamic" && index === activeDigit;
+                                    return (
+                                        <div
+                                            key={`${ch}-${index}`}
+                                            className={`sevensegDigit ${scanMode === "dynamic" ? "isScanning" : ""} ${isActive ? "isActive" : ""}`}
+                                            style={{
+                                                display: "flex",
+                                                flexDirection: "column",
+                                                alignItems: "center",
+                                                padding: 6,
+                                                borderRadius: 8,
+                                                border: isActive ? `1px solid ${token.colorPrimary}` : "1px solid transparent",
+                                                background: isActive ? token.colorPrimaryBg : "transparent",
+                                                color: token.colorText,
+                                            }}
+                                        >
+                                        <SevenSegSvg active={new Set(segmentsForChar(ch))} size={80} highlight={isActive} />
+                                            <Typography.Text type="secondary" style={{ marginTop: 4 }}>
+                                                {scanMode === "dynamic" ? `${index + 1}` : ch || " "}
+                                            </Typography.Text>
+                                            {scanMode === "dynamic" ? (
+                                                <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                                                    {digitValues[index] ?? ""}
+                                                </Typography.Text>
+                                            ) : null}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </Card>
 
@@ -422,17 +649,6 @@ export default function SevenSegPage() {
                     </Space>
                 </Layout.Content>
             </Layout>
-            <Layout.Footer
-                style={{
-                    padding: "4px 12px",
-                    background: token.colorBgContainer,
-                    borderTop: `1px solid ${token.colorBorder}`,
-                }}
-            >
-                <div className="compactStatusBar">
-                    <Typography.Text type="secondary">7-Seg</Typography.Text>
-                </div>
-            </Layout.Footer>
         </Layout>
     );
 }

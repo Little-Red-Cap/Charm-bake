@@ -163,3 +163,29 @@
 .compactStatusBar .ant-space {
   gap: 8px !important;
 }
+
+.sevensegDigit {
+  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+}
+
+.sevensegDigit.isScanning {
+  opacity: 0.55;
+}
+
+.sevensegDigit.isActive {
+  opacity: 1;
+  transform: translateY(-1px);
+  animation: sevensegPulse 0.6s ease-in-out infinite;
+}
+
+@keyframes sevensegPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(22, 119, 255, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(22, 119, 255, 0.06);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(22, 119, 255, 0.2);
+  }
+}
