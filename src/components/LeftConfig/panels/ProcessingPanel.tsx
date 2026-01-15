@@ -22,21 +22,36 @@ export default function ProcessingPanel() {
             {showThreshold ? (
                 <Form.Item
                     label={
-                        <Space size={8}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
                             <span>灰度过滤强度</span>
-                            <span
-                                style={{
-                                    width: 14,
-                                    height: 14,
-                                    borderRadius: 3,
-                                    background: `rgb(${config.threshold}, ${config.threshold}, ${config.threshold})`,
-                                    border: "1px solid rgba(0, 0, 0, 0.25)",
-                                    display: "inline-block",
-                                }}
-                            />
-                        </Space>
+                            <Typography.Text type="secondary">{config.threshold}</Typography.Text>
+                        </div>
                     }
                 >
+                    <div style={{ position: "relative", width: "100%", marginTop: 6, paddingBottom: 8 }}>
+                        <div
+                            style={{
+                                width: "100%",
+                                height: 10,
+                                borderRadius: 6,
+                                background: "linear-gradient(90deg, #000 0%, #fff 100%)",
+                                border: "1px solid rgba(0, 0, 0, 0.25)",
+                            }}
+                        />
+                        <div
+                            style={{
+                                position: "absolute",
+                                left: `${(config.threshold / 255) * 100}%`,
+                                top: 12,
+                                width: 0,
+                                height: 0,
+                                borderLeft: "5px solid transparent",
+                                borderRight: "5px solid transparent",
+                                borderBottom: "7px solid rgba(0, 0, 0, 0.75)",
+                                transform: "translateX(-5px)",
+                            }}
+                        />
+                    </div>
                     <Slider
                         min={0}
                         max={255}
