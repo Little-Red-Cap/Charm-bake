@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button, Card, Checkbox, Collapse, Form, Input, InputNumber, Layout, Radio, Select, Space, Typography, theme } from "antd";
 import { useUiStore } from "../../store/ui.store";
 import { t } from "../../domain/i18n";
+import { formatNumber } from "../../domain/format";
 import CodeEditor from "../common/CodeEditor";
 import SplitPane from "../common/SplitPane";
 
@@ -63,15 +64,6 @@ function encodeSegments(on: Set<Segment>, order: Segment[], bitOrder: "msb" | "l
         if (on.has(seg)) value |= 1 << bitIndex;
     }
     return value;
-}
-
-function formatValue(value: number, format: "bin" | "dec" | "hex", bits: number): string {
-    if (format === "dec") return String(value);
-    if (format === "hex") {
-        const width = Math.ceil(bits / 4);
-        return `0x${value.toString(16).toUpperCase().padStart(width, "0")}`;
-    }
-    return `0b${value.toString(2).padStart(bits, "0")}`;
 }
 
 function macroNameForChar(ch: string): string {
@@ -231,7 +223,7 @@ export default function SevenSegPage() {
                 const mask = (1 << digitBits) - 1;
                 value = mask ^ value;
             }
-            return formatValue(value, format, digitBits);
+            return formatNumber(value, format, digitBits);
         });
     }, [digitCount, digitOrder, digitPolarity, format, scanMode]);
 
@@ -312,11 +304,11 @@ export default function SevenSegPage() {
 
         let body: string[] = [];
         if (outputStyle === "macro") {
-            body = values.map((entry) => `#define ${outputPrefix}_${macroNameForChar(entry.ch)} ${formatValue(entry.value, format, bits)}`);
+            body = values.map((entry) => `#define ${outputPrefix}_${macroNameForChar(entry.ch)} ${formatNumber(entry.value, format, bits)}`);
         } else if (outputStyle === "enum") {
             body = [
                 `enum ${enumName} {`,
-                ...values.map((entry) => `  ${outputPrefix}_${macroNameForChar(entry.ch)} = ${formatValue(entry.value, format, bits)},`),
+                ...values.map((entry) => `  ${outputPrefix}_${macroNameForChar(entry.ch)} = ${formatNumber(entry.value, format, bits)},`),
                 "};",
             ];
         } else {
@@ -324,7 +316,7 @@ export default function SevenSegPage() {
             body = [
                 `static const char ${charsetName}[] = "${charsetString}";`,
                 `static const uint8_t ${arrayName}[] = {`,
-                ...values.map((entry) => `  /* ${entry.ch} */ ${formatValue(entry.value, format, bits)},`),
+                ...values.map((entry) => `  /* ${entry.ch} */ ${formatNumber(entry.value, format, bits)},`),
                 "};",
             ];
         }
@@ -339,7 +331,7 @@ export default function SevenSegPage() {
                     const mask = (1 << digitBits) - 1;
                     value = mask ^ value;
                 }
-                return `  ${formatValue(value, format, digitBits)},`;
+                return `  ${formatNumber(value, format, digitBits)},`;
             });
             tail.push(`static const uint8_t ${digitsName}[] = {`, ...digitLines, "};");
         }

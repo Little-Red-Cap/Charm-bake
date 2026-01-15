@@ -5,6 +5,7 @@ import { useFontJobStore } from "../../store/fontjob.store";
 import { useUiStore } from "../../store/ui.store";
 import { t } from "../../domain/i18n";
 import { exportFont } from "../../services/generator/generator";
+import { copyText } from "../../services/clipboard";
 
 export default function TopBar() {
     const { config, status, result, generate } = useFontJobStore();
@@ -13,7 +14,7 @@ export default function TopBar() {
 
     const onCopy = async () => {
         if (!result?.code) return;
-        await navigator.clipboard.writeText(result.code);
+        await copyText(result.code);
         msgApi.success(t(language, "copySuccess"));
     };
 

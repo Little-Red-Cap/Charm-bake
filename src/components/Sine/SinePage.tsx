@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Card, Collapse, Form, Input, InputNumber, Layout, Radio, Slider, Space, Tooltip, Typography, theme } from "antd";
 import { useUiStore } from "../../store/ui.store";
 import { t } from "../../domain/i18n";
+import { formatNumber } from "../../domain/format";
 import CodeEditor from "../common/CodeEditor";
 import SplitPane from "../common/SplitPane";
 
@@ -14,15 +15,6 @@ const CODE_MIN_HEIGHT = 240;
 
 function clamp(value: number, min: number, max: number): number {
     return Math.min(max, Math.max(min, value));
-}
-
-function formatValue(value: number, format: OutputFormat, bits: number): string {
-    if (format === "dec") return String(value);
-    if (format === "hex") {
-        const width = Math.ceil(bits / 4);
-        return `0x${value.toString(16).toUpperCase().padStart(width, "0")}`;
-    }
-    return `0b${value.toString(2).padStart(bits, "0")}`;
 }
 
 function valueType(bits: number, signed: SignedMode): string {
@@ -196,15 +188,15 @@ export default function SinePage() {
 
         const arrLines = [
             `static const ${typeName} ${arrayName}[] = {`,
-            ...quantized.map((v) => `  ${formatValue(v, format, bits)},`),
+            ...quantized.map((v) => `  ${formatNumber(v, format, bits)},`),
             "};",
         ];
         const enumLines = [
             `enum ${enumName} {`,
-            ...quantized.map((v, idx) => `  ${macroPrefix}_${macroName(idx)} = ${formatValue(v, format, bits)},`),
+            ...quantized.map((v, idx) => `  ${macroPrefix}_${macroName(idx)} = ${formatNumber(v, format, bits)},`),
             "};",
         ];
-        const macroLines = quantized.map((v, idx) => `#define ${macroPrefix}_${macroName(idx)} ${formatValue(v, format, bits)}`);
+        const macroLines = quantized.map((v, idx) => `#define ${macroPrefix}_${macroName(idx)} ${formatNumber(v, format, bits)}`);
 
         if (template === "cpp_module") {
             const body =
@@ -214,7 +206,7 @@ export default function SinePage() {
                         ? enumLines
                         : [
                             `export ${typeName} ${arrayName}[] = {`,
-                            ...quantized.map((v) => `  ${formatValue(v, format, bits)},`),
+                            ...quantized.map((v) => `  ${formatNumber(v, format, bits)},`),
                             "};",
                         ];
             return [

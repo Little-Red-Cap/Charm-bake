@@ -5,6 +5,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useUiStore } from "../../store/ui.store";
 import { useImageJobStore } from "../../store/imagejob.store";
+import { formatNumber, type NumberFormat } from "../../domain/format";
 import CodeEditor from "../common/CodeEditor";
 import SplitPane from "../common/SplitPane";
 import { t } from "../../domain/i18n";
@@ -184,16 +185,11 @@ function packMono(mono: Uint8ClampedArray, width: number, height: number): Uint8
     return out;
 }
 
-function formatHex(value: number, width: number): string {
-    return `0x${value.toString(16).toUpperCase().padStart(width, "0")}`;
-}
-
-function formatArray(values: ArrayLike<number>, perLine: number, width: number): string {
-    // TODO: support number format (bin/dec/hex) for output code.
+function formatArray(values: ArrayLike<number>, perLine: number, format: NumberFormat, bits?: number): string {
     const lines: string[] = [];
     let line: string[] = [];
     for (let i = 0; i < values.length; i += 1) {
-        line.push(formatHex(values[i], width));
+        line.push(formatNumber(values[i], format, bits));
         if (line.length >= perLine) {
             lines.push(line.join(", "));
             line = [];
@@ -207,6 +203,7 @@ function formatArray(values: ArrayLike<number>, perLine: number, width: number):
 
 function buildOutputCode(
     mode: OutputMode,
+    format: NumberFormat,
     width: number,
     height: number,
     base: ImageData,
@@ -217,7 +214,7 @@ function buildOutputCode(
     // TODO: include scan/bit order metadata in header once implemented.
     if (mode === "mono") {
         const packed = packMono(mono, width, height);
-        const body = formatArray(packed, 12, 2);
+        const body = formatArray(packed, 12, format, 8);
         const stride = Math.ceil(width / 8);
         return (
             `${header}// format: 1-bit packed, row-major, MSB-first\n` +
@@ -227,13 +224,13 @@ function buildOutputCode(
     }
 
     if (mode === "gray") {
-        const body = formatArray(gray, 12, 2);
+        const body = formatArray(gray, 12, format, 8);
         return `${header}// format: 8-bit grayscale\nconst uint8_t image_data[] = {\n    ${body}\n};\n`;
     }
 
     if (mode === "rgb565") {
         const values = rgb565ToU16(base.data);
-        const body = formatArray(values, 8, 4);
+        const body = formatArray(values, 8, format, 16);
         return `${header}// format: RGB565\nconst uint16_t image_data[] = {\n    ${body}\n};\n`;
     }
 
@@ -243,7 +240,7 @@ function buildOutputCode(
         rgb[j++] = base.data[i + 1];
         rgb[j++] = base.data[i + 2];
     }
-    const body = formatArray(rgb, 12, 2);
+    const body = formatArray(rgb, 12, format, 8);
     return `${header}// format: RGB888 (R,G,B)\nconst uint8_t image_data[] = {\n    ${body}\n};\n`;
 }
 
@@ -333,6 +330,7 @@ export default function ImagePage() {
     const [resizeMode, setResizeMode] = useState<ResizeMode>("fit");
     const [outputMode, setOutputMode] = useState<OutputMode>("mono");
     const [ditherMode, setDitherMode] = useState<DitherMode>("floyd");
+    const [numberFormat, setNumberFormat] = useState<NumberFormat>("hex");
 
     const codeText = useMemo(() => {
         if (!outputCode) return t(language, "statsNoOutput");
@@ -384,7 +382,7 @@ export default function ImagePage() {
                 }
 
                 const exported = imageDataToDataUrl(exportImage);
-                const code = buildOutputCode(outputMode, base.width, base.height, base, gray, mono);
+                const code = buildOutputCode(outputMode, numberFormat, base.width, base.height, base, gray, mono);
                 if (!cancelled) {
                     setProcessedUrl(processed);
                     setExportUrl(exported);
@@ -404,7 +402,7 @@ export default function ImagePage() {
         return () => {
             cancelled = true;
         };
-    }, [imageUrl, resizeMode, outputMode, ditherMode, targetWidth, targetHeight]);
+    }, [imageUrl, resizeMode, outputMode, ditherMode, targetWidth, targetHeight, numberFormat]);
 
     useEffect(() => {
         setOutput({ outputCode, outputMode, imagePath: imagePath || null });
@@ -514,6 +512,13 @@ export default function ImagePage() {
                                                     <Radio value="bayer8">{t(language, "imageDitherBayer8")}</Radio>
                                                 </Radio.Group>
                                                 {/* TODO: add threshold slider, dither strength, matrix size, and scan/bit order options. */}
+                                            </Form.Item>
+                                            <Form.Item label={t(language, "numberFormatLabel")}>
+                                                <Radio.Group value={numberFormat} onChange={(e) => setNumberFormat(e.target.value)}>
+                                                    <Radio value="bin">{t(language, "numberFormatBin")}</Radio>
+                                                    <Radio value="dec">{t(language, "numberFormatDec")}</Radio>
+                                                    <Radio value="hex">{t(language, "numberFormatHex")}</Radio>
+                                                </Radio.Group>
                                             </Form.Item>
                                         </Form>
                                     ),

@@ -10,7 +10,6 @@ import {
     TableOutlined,
 } from "@ant-design/icons";
 import { invoke } from "@tauri-apps/api/core";
-import { save } from "@tauri-apps/plugin-dialog";
 import TopBar from "../components/TopBar/TopBar";
 import StatusBar from "../components/StatusBar/StatusBar";
 import LeftConfigSider from "../components/LeftConfig/LeftConfigSider";
@@ -25,6 +24,8 @@ import { useImageJobStore } from "../store/imagejob.store";
 import { useUiStore } from "../store/ui.store";
 import { t } from "../domain/i18n";
 import type { Language } from "../domain/i18n";
+import { saveTextFile } from "../services/saveTextFile";
+import { copyText } from "../services/clipboard";
 import "../App.css";
 
 const parseRangeString = (range: string | undefined) => {
@@ -165,20 +166,21 @@ function HeaderActions({ activeTab }: { activeTab: string }) {
 
         const onCopy = async () => {
             if (!outputCode) return;
-            await navigator.clipboard.writeText(outputCode);
+            await copyText(outputCode);
             msgApi.success(t(language, "copySuccess"));
         };
 
         const onSave = async () => {
             if (!outputCode) return;
-            const selected = await save({
-                defaultPath: defaultName,
-                filters: [{ name: "C Source", extensions: ["c"] }],
-            });
-            if (!selected) return;
             try {
-                await invoke("save_text_file", { path: selected, contents: outputCode });
-                msgApi.success(t(language, "saveSuccess", { path: selected }));
+                const savedPath = await saveTextFile({
+                    defaultPath: defaultName,
+                    filters: [{ name: "C Source", extensions: ["c"] }],
+                    contents: outputCode,
+                });
+                if (savedPath) {
+                    msgApi.success(t(language, "saveSuccess", { path: savedPath }));
+                }
             } catch (e: any) {
                 msgApi.error(e?.message || String(e));
             }
