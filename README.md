@@ -2,7 +2,7 @@
 
 # [Charm-bake](https://github.com/Little-Red-Cap/Charm-bake)
 
-**为 Charm GUI 生成 MCU 友好的 C/C++ 字体与图像数据**
+**为 Charm GUI 生成 MCU 友好的 C/C++ 字体与图像等数据**
 <br>
 **Bake fonts & images into MCU-friendly C/C++ data for Charm GUI.**
 
@@ -15,11 +15,6 @@
 
 ---
 
-<div align="center">
-
-问题反馈：[GitHub Issues](https://github.com/Little-Red-Cap/Charm-bake/issues)
-
-</div>
 
 ## ✨ 项目亮点
 
@@ -28,14 +23,7 @@
 - 丰富预览：灰度/二值/导出一致性、波形与数码管可视化
 - 面向嵌入式：位序、扫描方向、数据格式可扩展
 
-## 📸 截图
 
-> 这里预留截图位置，后续补充。
-
-![Font Builder](docs/images/font-builder.png)
-![Image Tools](docs/images/image-tools.png)
-![Sine Generator](docs/images/sine-generator.png)
-![Seven-Seg Tools](docs/images/sevenseg-tools.png)
 
 ## 🚀 功能一览
 
@@ -43,7 +31,11 @@
 - 系统字体/文件字体加载
 - 字符集范围 + 自定义字符 + fallback
 - 灰度/二值预览与导出一致
-- C++20 module 导出（cppm）
+- 代码导出
+
+#### 📸 截图
+
+![Font Builder](doc/images/font-builder.png)
 
 ### 图像工具
 - 图片加载与缩放
@@ -51,14 +43,26 @@
 - 抖动算法（Floyd/Atkinson/Bayer）
 - 输出代码预览与一键保存
 
+#### 📸 截图
+
+![Image Tools](doc/images/image-tools.png)
+
 ### 正弦波生成
 - 波形预览 + 控制参数
 - 量化位宽、输出格式、模板切换
+
+#### 📸 截图
+
+![Sine Generator](doc/images/sine-generator.png)
 
 ### 数码管工具
 - 共阳/共阴、段序、位序
 - 动态扫描/位选配置
 - 输出代码预览
+
+#### 📸 截图
+
+![Seven-Seg Tools](doc/images/sevenseg-tools.png)
 
 ## 🧱 技术栈
 
@@ -103,3 +107,13 @@ cargo tauri build
 ## 🤝 贡献
 
 欢迎 PR / Issue，一起把 Charm-bake 打磨成真正好用的嵌入式资源生成器。
+
+--- 
+
+<div align="center">
+
+问题反馈：[GitHub Issues](https://github.com/Little-Red-Cap/Charm-bake/issues)
+
+[回到顶部](#charm-bake)
+
+</div>
