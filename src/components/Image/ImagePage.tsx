@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Card, Collapse, Form, Input, InputNumber, Layout, Radio, Space, theme } from "antd";
 import { PictureOutlined } from "@ant-design/icons";
 import Editor from "@monaco-editor/react";
@@ -13,6 +13,10 @@ type DitherMode = "none" | "floyd" | "atkinson" | "bayer4" | "bayer8";
 const PREVIEW_TARGET = { width: 240, height: 240 };
 const PREVIEW_MIN_SIZE = 64;
 const PREVIEW_MAX_SIZE = 1024;
+const PREVIEW_MIN_HEIGHT = 200;
+const CODE_MIN_HEIGHT = 240;
+const SPLIT_GAP = 16;
+const SPLIT_HANDLE_HEIGHT = 8;
 
 const BAYER_4 = [
     [0, 8, 2, 10],
@@ -320,6 +324,10 @@ export default function ImagePage() {
     const [resizeMode, setResizeMode] = useState<ResizeMode>("fit");
     const [outputMode, setOutputMode] = useState<OutputMode>("mono");
     const [ditherMode, setDitherMode] = useState<DitherMode>("floyd");
+    const [previewRatio, setPreviewRatio] = useState(0.45);
+    const [isDragging, setIsDragging] = useState(false);
+    const [containerHeight, setContainerHeight] = useState(0);
+    const splitContainerRef = useRef<HTMLDivElement | null>(null);
 
     const codeText = useMemo(() => {
         if (!outputCode) return t(language, "statsNoOutput");
@@ -381,6 +389,51 @@ export default function ImagePage() {
             cancelled = true;
         };
     }, [imageUrl, resizeMode, outputMode, ditherMode, targetWidth, targetHeight]);
+
+    useEffect(() => {
+        if (!isDragging) return undefined;
+
+        const handleMove = (event: MouseEvent) => {
+            const container = splitContainerRef.current;
+            if (!container) return;
+            const rect = container.getBoundingClientRect();
+            const y = event.clientY - rect.top;
+            const available = rect.height - SPLIT_HANDLE_HEIGHT - SPLIT_GAP * 2;
+            if (available <= 0) return;
+            const maxPreview = Math.max(PREVIEW_MIN_HEIGHT, available - CODE_MIN_HEIGHT);
+            const clampedPreview = Math.min(maxPreview, Math.max(PREVIEW_MIN_HEIGHT, y - SPLIT_GAP));
+            setPreviewRatio(clampedPreview / available);
+        };
+
+        const handleUp = () => setIsDragging(false);
+
+        window.addEventListener("mousemove", handleMove);
+        window.addEventListener("mouseup", handleUp);
+        return () => {
+            window.removeEventListener("mousemove", handleMove);
+            window.removeEventListener("mouseup", handleUp);
+        };
+    }, [isDragging]);
+
+    useEffect(() => {
+        const container = splitContainerRef.current;
+        if (!container) return undefined;
+
+        const observer = new ResizeObserver((entries) => {
+            const entry = entries[0];
+            if (entry) setContainerHeight(entry.contentRect.height);
+        });
+        observer.observe(container);
+        return () => observer.disconnect();
+    }, []);
+
+    const availableHeight = Math.max(0, containerHeight - SPLIT_HANDLE_HEIGHT - SPLIT_GAP * 2);
+    const previewHeight = availableHeight
+        ? Math.min(
+              Math.max(PREVIEW_MIN_HEIGHT, Math.round(previewRatio * availableHeight)),
+              Math.max(PREVIEW_MIN_HEIGHT, availableHeight - CODE_MIN_HEIGHT)
+          )
+        : PREVIEW_MIN_HEIGHT;
 
     return (
         <Layout style={{ height: "100%" }}>
@@ -490,6 +543,7 @@ export default function ImagePage() {
 
                 <Layout.Content style={{ padding: 16, overflow: "hidden", background: token.colorBgLayout }}>
                     <div
+                        ref={splitContainerRef}
                         style={{
                             display: "flex",
                             flexDirection: "column",
@@ -499,9 +553,9 @@ export default function ImagePage() {
                     >
                         <div
                             style={{
-                                flex: "0 1 auto",
-                                maxHeight: "45%",
-                                minHeight: 200,
+                                flex: `0 0 ${previewHeight}px`,
+                                maxHeight: `${previewHeight}px`,
+                                minHeight: PREVIEW_MIN_HEIGHT,
                                 overflow: "auto",
                                 paddingRight: 4,
                             }}
@@ -542,7 +596,22 @@ export default function ImagePage() {
                             </Card>
                         </div>
 
-                        <div style={{ flex: "1 1 0", minHeight: 240, overflow: "hidden" }}>
+                        <div
+                            role="separator"
+                            aria-orientation="horizontal"
+                            onMouseDown={(event) => {
+                                event.preventDefault();
+                                setIsDragging(true);
+                            }}
+                            style={{
+                                height: SPLIT_HANDLE_HEIGHT,
+                                cursor: "row-resize",
+                                borderRadius: 6,
+                                background: token.colorFillSecondary,
+                            }}
+                        />
+
+                        <div style={{ flex: "1 1 0", minHeight: CODE_MIN_HEIGHT, overflow: "hidden" }}>
                             <Card
                                 title={t(language, "imageOutputCodeTitle")}
                                 style={{ height: "100%" }}
