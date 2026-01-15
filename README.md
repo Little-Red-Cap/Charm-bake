@@ -2,9 +2,9 @@
 
 # [Charm-bake](https://github.com/Little-Red-Cap/Charm-bake)
 
-**为 Charm GUI 生成 MCU 友好的 C/C++ 字体与图像等数据**
-<br>
-**Bake fonts & images into MCU-friendly C/C++ data for Charm GUI.**
+**生成 MCU 友好的 C/C++ 字体与图像等数据**
+<br> 
+**Bake fonts & images into MCU-friendly C/C++ data.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
 [![Build Status](https://github.com/Little-Red-Cap/Charm-bake/actions/workflows/tauri.yml/badge.svg)](https://github.com/Little-Red-Cap/Charm-bake/actions)
