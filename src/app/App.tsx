@@ -15,6 +15,7 @@ import StatusBar from "../components/StatusBar/StatusBar";
 import LeftConfigSider from "../components/LeftConfig/LeftConfigSider";
 import SavePanel from "../components/LeftConfig/panels/SavePanel";
 import RightWorkspace from "../components/RightWorkspace/RightWorkspace";
+import SevenSegPage from "../components/SevenSeg/SevenSegPage";
 import { DEFAULT_CONFIG } from "../domain/presets";
 import { useFontJobStore } from "../store/fontjob.store";
 import { useUiStore } from "../store/ui.store";
@@ -143,8 +144,7 @@ function SineTab() {
 }
 
 function SevenSegTab() {
-    const language = useUiStore((s) => s.language);
-    return <div>{t(language, "sevenSegTodo")}</div>;
+    return <SevenSegPage />;
 }
 
 function HeaderActions({ activeTab }: { activeTab: string }) {
