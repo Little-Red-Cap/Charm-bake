@@ -50,17 +50,6 @@ export default function OutputOptionsPanel() {
                         </Radio.Group>
                     </div>
 
-                    <div style={{ width: "100%" }}>
-                        <Typography.Text style={{ marginRight: 8 }}>阈值</Typography.Text>
-                        <Slider
-                            min={0}
-                            max={255}
-                            value={config.threshold}
-                            onChange={(value) => {
-                                if (typeof value === "number") setConfig({ threshold: value });
-                            }}
-                        />
-                    </div>
                 </Space>
             </Form.Item>
 

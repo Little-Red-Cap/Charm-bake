@@ -5,6 +5,7 @@ export default function ProcessingPanel() {
     const { config, setConfig } = useFontJobStore();
 
     const showAdvanced = config.binarizeMode === "gamma_oversample";
+    const showThreshold = config.binarizeMode !== "mask_1bit";
 
     return (
         <Form layout="vertical">
@@ -18,16 +19,34 @@ export default function ProcessingPanel() {
                 </Radio.Group>
             </Form.Item>
 
-            <Form.Item label="阈值">
-                <Slider
-                    min={0}
-                    max={255}
-                    value={config.threshold}
-                    onChange={(value) => {
-                        if (typeof value === "number") setConfig({ threshold: value });
-                    }}
-                />
-            </Form.Item>
+            {showThreshold ? (
+                <Form.Item
+                    label={
+                        <Space size={8}>
+                            <span>灰度过滤强度</span>
+                            <span
+                                style={{
+                                    width: 14,
+                                    height: 14,
+                                    borderRadius: 3,
+                                    background: `rgb(${config.threshold}, ${config.threshold}, ${config.threshold})`,
+                                    border: "1px solid rgba(0, 0, 0, 0.25)",
+                                    display: "inline-block",
+                                }}
+                            />
+                        </Space>
+                    }
+                >
+                    <Slider
+                        min={0}
+                        max={255}
+                        value={config.threshold}
+                        onChange={(value) => {
+                            if (typeof value === "number") setConfig({ threshold: value });
+                        }}
+                    />
+                </Form.Item>
+            ) : null}
 
             {showAdvanced ? (
                 <Form.Item label="高级（Gamma / Oversample）">

@@ -158,8 +158,6 @@ export default function PreviewTab() {
     const { result, config, setConfig } = useFontJobStore();
     const glyphs = result?.preview?.glyphs ?? [];
     const scale = config.previewScale ?? 3;
-    const minColumn = Math.max(110, 54 + scale * 18);
-
     const items = useMemo(() => glyphs, [glyphs]);
     if (!items.length) {
         return <Empty description="No preview yet" />;
@@ -183,9 +181,10 @@ export default function PreviewTab() {
             </Space>
             <div
                 style={{
-                    display: "grid",
-                    gridTemplateColumns: `repeat(auto-fill, minmax(${minColumn}px, 1fr))`,
-                    gap: 6,
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 8,
+                    alignItems: "flex-start",
                 }}
             >
                 {items.map((g) => (
@@ -196,16 +195,23 @@ export default function PreviewTab() {
                         <div style={{ fontSize: 12, color: "rgba(0, 0, 0, 0.65)" }}>
                             {codepointLabel(g.codepoint)}
                         </div>
-                        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        <div
+                            style={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: 6,
+                                alignItems: "flex-start",
+                            }}
+                        >
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "0 0 auto" }}>
                                 <div style={{ fontSize: 11, color: "rgba(0, 0, 0, 0.6)" }}>Raw</div>
                                 <RawCanvas glyph={g} scale={scale} />
                             </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "0 0 auto" }}>
                                 <div style={{ fontSize: 11, color: "rgba(0, 0, 0, 0.6)" }}>Gray</div>
                                 <GrayCanvas glyph={g} scale={scale} />
                             </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "0 0 auto" }}>
                                 <div style={{ fontSize: 11, color: "rgba(0, 0, 0, 0.6)" }}>Mono</div>
                                 <MonoCanvas glyph={g} scale={scale} />
                             </div>
