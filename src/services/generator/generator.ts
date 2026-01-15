@@ -8,6 +8,7 @@ type BackendPreviewGlyph = {
     advance: number;
     bitmap_b64: string;
     mono_b64?: string;
+    raw_b64?: string;
 };
 
 type BackendExportResult = {
@@ -114,6 +115,7 @@ export async function generateFont(cfg: FontJobConfig): Promise<FontGenerateResu
         advance: g.advance,
         bitmapB64: g.bitmap_b64,
         monoB64: g.mono_b64,
+        rawB64: g.raw_b64,
     }));
 
     const code = result.c?.source ?? "";

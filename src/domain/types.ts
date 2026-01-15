@@ -1,6 +1,6 @@
 ﻿export type OutputKind = "cpp_module" | "cpp" | "c";
 export type NumberFormat = "bin" | "hex" | "dec";
-export type BinarizeMode = "mask" | "gamma_oversample";
+export type BinarizeMode = "mask" | "mask_1bit" | "gamma_oversample";
 
 export type FontSourceMode = "system" | "file";
 
@@ -26,6 +26,7 @@ export interface FontJobConfig {
     threshold: number;
     gamma: number;
     oversample: number;
+    previewScale: number;
 
     saveDir: string | null;
     saveFileName: string; // e.g. yahei_12.cppm
@@ -49,7 +50,7 @@ export interface PreviewGlyph {
     h: number;
     advance: number;
     bitmapB64: string;
-    monoB64?: string;
+    monoB64?: string;\n    rawB64?: string;
 }
 
 export interface FontPreview {
@@ -70,3 +71,5 @@ export interface FontJobState {
     result: FontGenerateResult | null;
     error: string | null;
 }
+
+

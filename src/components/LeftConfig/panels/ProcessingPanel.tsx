@@ -13,7 +13,7 @@ export default function ProcessingPanel() {
                     value={config.binarizeMode}
                     onChange={(e) => setConfig({ binarizeMode: e.target.value })}
                 >
-                    <Radio value="mask">Python 风格（硬阈值）</Radio>
+                    <Radio value="mask_1bit">Python 风格（1-bit mask）</Radio>
                     <Radio value="gamma_oversample">Gamma + Oversample</Radio>
                 </Radio.Group>
             </Form.Item>
@@ -62,3 +62,4 @@ export default function ProcessingPanel() {
         </Form>
     );
 }
+

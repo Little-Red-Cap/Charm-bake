@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useRef } from "react";
-import { Card, Empty } from "antd";
+import { Card, Empty, Slider, Space, Typography } from "antd";
 import type { PreviewGlyph } from "../../../domain/types";
 import { useFontJobStore } from "../../../store/fontjob.store";
 
@@ -17,7 +17,7 @@ function codepointLabel(codepoint: number): string {
     return `U+${codepoint.toString(16).toUpperCase().padStart(4, "0")} '${ch}'`;
 }
 
-function GrayCanvas({ glyph }: { glyph: PreviewGlyph }) {
+function GrayCanvas({ glyph, scale }: { glyph: PreviewGlyph; scale: number }) {
     const ref = useRef<HTMLCanvasElement | null>(null);
 
     useEffect(() => {
@@ -47,7 +47,6 @@ function GrayCanvas({ glyph }: { glyph: PreviewGlyph }) {
         ctx.putImageData(imageData, 0, 0);
     }, [glyph]);
 
-    const scale = 2;
     return (
         <canvas
             ref={ref}
@@ -62,7 +61,51 @@ function GrayCanvas({ glyph }: { glyph: PreviewGlyph }) {
     );
 }
 
-function MonoCanvas({ glyph }: { glyph: PreviewGlyph }) {
+function RawCanvas({ glyph, scale }: { glyph: PreviewGlyph; scale: number }) {
+    const ref = useRef<HTMLCanvasElement | null>(null);
+
+    useEffect(() => {
+        const canvas = ref.current;
+        if (!canvas) return;
+        const { w, h, rawB64 } = glyph;
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        if (w === 0 || h === 0 || !rawB64) {
+            ctx.clearRect(0, 0, w, h);
+            return;
+        }
+
+        const bytes = decodeBase64(rawB64);
+        const imageData = ctx.createImageData(w, h);
+        for (let i = 0; i < bytes.length; i += 1) {
+            const v = bytes[i];
+            const idx = i * 4;
+            imageData.data[idx] = 0;
+            imageData.data[idx + 1] = 0;
+            imageData.data[idx + 2] = 0;
+            imageData.data[idx + 3] = v;
+        }
+        ctx.putImageData(imageData, 0, 0);
+    }, [glyph]);
+
+    return (
+        <canvas
+            ref={ref}
+            style={{
+                width: glyph.w * scale,
+                height: glyph.h * scale,
+                imageRendering: "pixelated",
+                background: "#fff",
+                border: "1px solid #f0f0f0",
+            }}
+        />
+    );
+}
+
+function MonoCanvas({ glyph, scale }: { glyph: PreviewGlyph; scale: number }) {
     const ref = useRef<HTMLCanvasElement | null>(null);
 
     useEffect(() => {
@@ -97,7 +140,6 @@ function MonoCanvas({ glyph }: { glyph: PreviewGlyph }) {
         ctx.putImageData(imageData, 0, 0);
     }, [glyph]);
 
-    const scale = 2;
     return (
         <canvas
             ref={ref}
@@ -113,8 +155,10 @@ function MonoCanvas({ glyph }: { glyph: PreviewGlyph }) {
 }
 
 export default function PreviewTab() {
-    const { result } = useFontJobStore();
+    const { result, config, setConfig } = useFontJobStore();
     const glyphs = result?.preview?.glyphs ?? [];
+    const scale = config.previewScale ?? 3;
+    const minColumn = Math.max(110, 54 + scale * 18);
 
     const items = useMemo(() => glyphs, [glyphs]);
     if (!items.length) {
@@ -123,11 +167,25 @@ export default function PreviewTab() {
 
     return (
         <Card>
+            <Space align="center" style={{ marginBottom: 12 }}>
+                <Typography.Text>缩放</Typography.Text>
+                <Slider
+                    min={1}
+                    max={10}
+                    step={1}
+                    value={scale}
+                    onChange={(value) => {
+                        if (typeof value === "number") setConfig({ previewScale: value });
+                    }}
+                    style={{ width: 160 }}
+                />
+                <Typography.Text type="secondary">{scale}x</Typography.Text>
+            </Space>
             <div
                 style={{
                     display: "grid",
-                    gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
-                    gap: 12,
+                    gridTemplateColumns: `repeat(auto-fill, minmax(${minColumn}px, 1fr))`,
+                    gap: 6,
                 }}
             >
                 {items.map((g) => (
@@ -140,12 +198,16 @@ export default function PreviewTab() {
                         </div>
                         <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
                             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                                <div style={{ fontSize: 11, color: "rgba(0, 0, 0, 0.6)" }}>Raw</div>
+                                <RawCanvas glyph={g} scale={scale} />
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                 <div style={{ fontSize: 11, color: "rgba(0, 0, 0, 0.6)" }}>Gray</div>
-                                <GrayCanvas glyph={g} />
+                                <GrayCanvas glyph={g} scale={scale} />
                             </div>
                             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                                 <div style={{ fontSize: 11, color: "rgba(0, 0, 0, 0.6)" }}>Mono</div>
-                                <MonoCanvas glyph={g} />
+                                <MonoCanvas glyph={g} scale={scale} />
                             </div>
                         </div>
                     </div>

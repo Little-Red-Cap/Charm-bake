@@ -56,6 +56,7 @@ const migrateSettings = (raw: any) => {
         if (typeof options.threshold === "number") cfg.threshold = options.threshold;
         if (typeof options.gamma === "number") cfg.gamma = options.gamma;
         if (typeof options.oversample === "number") cfg.oversample = options.oversample;
+        if (typeof options.previewScale === "number") cfg.previewScale = options.previewScale;
         if (typeof options.customChars === "string") cfg.customChars = options.customChars;
         if (typeof options.fallbackChar === "string") cfg.fallbackChar = options.fallbackChar;
         if (typeof options.saveDir === "string" || options.saveDir === null) cfg.saveDir = options.saveDir;

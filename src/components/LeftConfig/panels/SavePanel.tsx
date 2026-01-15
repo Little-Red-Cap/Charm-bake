@@ -63,6 +63,7 @@ export default function SavePanel() {
                 threshold: config.threshold,
                 gamma: config.gamma,
                 oversample: config.oversample,
+                previewScale: config.previewScale,
                 customChars: config.customChars,
                 fallbackChar: config.fallbackChar,
                 fontSourceMode: config.fontSourceMode,

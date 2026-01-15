@@ -81,6 +81,7 @@ pub struct PreviewGlyph {
     advance: u32,
     bitmap_b64: String,
     mono_b64: String,
+    raw_b64: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -139,7 +140,7 @@ pub struct ExportFontArgs {
 const PREVIEW_MAX_GLYPHS: usize = 256;
 const PREVIEW_MAX_PIXELS_TOTAL: usize = 4 * 1024 * 1024; // 4MB raw grayscale
 fn default_binarize_mode() -> String {
-    "mask".to_string()
+    "mask_1bit".to_string()
 }
 
 fn default_threshold() -> u8 {
@@ -357,12 +358,15 @@ fn parse_fallback_char(job: &FontJob, warnings: &mut Vec<String>) -> Option<char
 }
 enum BinarizeMode {
     Mask,
+    Mask1Bit,
     GammaOversample,
 }
 
 fn parse_binarize_mode(mode: &str) -> BinarizeMode {
     if mode == "gamma_oversample" {
         BinarizeMode::GammaOversample
+    } else if mode == "mask_1bit" {
+        BinarizeMode::Mask1Bit
     } else {
         BinarizeMode::Mask
     }
@@ -464,6 +468,7 @@ fn rasterize_gray(
     let (metrics, bitmap) = font.rasterize_indexed(glyph_index, size_px as f32);
     match parse_binarize_mode(mode) {
         BinarizeMode::Mask => (metrics, bitmap),
+        BinarizeMode::Mask1Bit => (metrics, bitmap),
         BinarizeMode::GammaOversample => {
             let os = clamp_oversample(oversample);
             if os <= 1 {
@@ -506,13 +511,20 @@ fn build_preview(
 
     for glyph_index in unique_indices.iter().take(PREVIEW_MAX_GLYPHS) {
         let (metrics, bitmap) = rasterize_gray(font, *glyph_index, size_px, binarize_mode, gamma, oversample);
+        let (raw_metrics, raw_bitmap) = font.rasterize_indexed(*glyph_index, size_px as f32);
         let codepoint = representative_cp.get(glyph_index).copied().unwrap_or(0);
         let w = metrics.width as u32;
         let h = metrics.height as u32;
         let advance = metrics.advance_width as u32;
         let bitmap_b64 = BASE64_STANDARD.encode(&bitmap);
-        let (mono, _stride) = pack_bitmap_1b(&bitmap, w, h, threshold);
+        let mono_threshold = if binarize_mode == "mask_1bit" { 1 } else { threshold };
+        let (mono, _stride) = pack_bitmap_1b(&bitmap, w, h, mono_threshold);
         let mono_b64 = BASE64_STANDARD.encode(&mono);
+        let raw_b64 = if raw_metrics.width == metrics.width && raw_metrics.height == metrics.height {
+            BASE64_STANDARD.encode(&raw_bitmap)
+        } else {
+            BASE64_STANDARD.encode(&bitmap)
+        };
 
         if total_bytes + bitmap.len() > PREVIEW_MAX_PIXELS_TOTAL {
             truncated = Some((glyphs.len(), total_bytes));
@@ -528,6 +540,7 @@ fn build_preview(
             advance,
             bitmap_b64,
             mono_b64,
+            raw_b64,
         });
     }
 
@@ -574,7 +587,8 @@ fn build_glyph_data(
         if h > max_h {
             max_h = h;
         }
-        let (packed, _stride) = pack_bitmap_1b(&bitmap, w, h, threshold);
+        let mono_threshold = if binarize_mode == "mask_1bit" { 1 } else { threshold };
+        let (packed, _stride) = pack_bitmap_1b(&bitmap, w, h, mono_threshold);
         let offset = bitmaps.len();
         let len = packed.len();
         bitmaps.extend_from_slice(&packed);
@@ -708,63 +722,97 @@ fn generate_cpp_module(job: &FontJob, data: &GlyphData, line_height: i32, baseli
     };
 
     let mut out = String::new();
-    out.push_str("module;\n");
-    out.push_str("#include <cstdint>\n");
-    out.push_str("#include <span>\n");
-    out.push_str(&format!("export module {};\n\n", module_name));
-    out.push_str("import ui_font;\n\n");
-    out.push_str("// Bitmap format: 1-bit packed, row-major, MSB-first.\n");
-    out.push_str("// stride = (width + 7) / 8\n");
-    out.push_str("// byte_index = y * stride + (x >> 3)\n");
-    out.push_str("// bit_mask   = 0x80 >> (x & 7)\n\n");
+    out.push_str("module;
+");
+    out.push_str("#include <cstdint>
+");
+    out.push_str("#include <span>
+");
+    out.push_str(&format!("export module {};
 
-    out.push_str("static constexpr uint8_t glyph_bitmaps[] = {\n");
+", module_name));
+    out.push_str("import ui_font;
+
+");
+    out.push_str("// Bitmap format: 1-bit packed, row-major, MSB-first.
+");
+    out.push_str("// stride = (width + 7) / 8
+");
+    out.push_str("// byte_index = y * stride + (x >> 3)
+");
+    out.push_str("// bit_mask   = 0x80 >> (x & 7)
+
+");
+
+    out.push_str("static constexpr uint8_t glyph_bitmaps[] = {
+");
     for packed in &data.packed_glyphs {
         if job.with_comments {
             let ch = display_char(packed.codepoint);
-            out.push_str(&format!("    // code {} ('{}')\n", packed.codepoint, ch));
+            out.push_str(&format!("    // code {} ('{}')
+", packed.codepoint, ch));
         }
         let end = packed.offset + packed.len;
         for b in &data.bitmaps[packed.offset..end] {
-            out.push_str(&format!("    {},\n", format_byte(*b, &job.number_format)));
+            out.push_str(&format!("    {},
+", format_byte(*b, &job.number_format)));
         }
     }
-    out.push_str("};\n\n");
+    out.push_str("};
 
-    out.push_str("static constexpr Glyph glyph_table[] = {\n");
+");
+
+    out.push_str("static constexpr Glyph glyph_table[] = {
+");
     for (idx, entry) in data.glyphs.iter().enumerate() {
         if job.with_comments {
             let cp = data.codepoints.get(idx).copied().unwrap_or(0);
             let ch = display_char(cp);
-            out.push_str(&format!("    // {} (code {})\n", ch, cp));
+            out.push_str(&format!("    // {} (code {})
+", ch, cp));
         }
         out.push_str(&format!(
-            "    {{ glyph_bitmaps + {}, {}, {}, {}, {}, {} }},\n",
+            "    {{ glyph_bitmaps + {}, {}, {}, {}, {}, {} }},
+",
             entry.offset, entry.width, entry.height, entry.x_advance, entry.x_offset, entry.y_offset
         ));
     }
-    out.push_str("};\n\n");
+    out.push_str("};
 
-    out.push_str("static constexpr GlyphRange glyph_ranges[] = {\n");
+");
+
+    out.push_str("static constexpr GlyphRange glyph_ranges[] = {
+");
     for range in &data.ranges {
         out.push_str(&format!(
-            "    {{ {}, {}, {} }},\n",
+            "    {{ {}, {}, {} }},
+",
             range.start, range.length, range.glyph_id_start
         ));
     }
-    out.push_str("};\n\n");
+    out.push_str("};
 
-    out.push_str(&format!("export constexpr Font {} = {{\n", export_name));
-    out.push_str("    .table = glyph_table,\n");
-    out.push_str("    .ranges = glyph_ranges,\n");
+");
+
+    out.push_str(&format!("export constexpr Font {} = {{
+", export_name));
+    out.push_str("    .table = glyph_table,
+");
+    out.push_str("    .ranges = glyph_ranges,
+");
     if let Some(idx) = data.fallback_index {
-        out.push_str(&format!("    .fallback_glyph = &glyph_table[{}],\n", idx));
+        out.push_str(&format!("    .fallback_glyph = &glyph_table[{}],
+", idx));
     } else {
-        out.push_str("    .fallback_glyph = nullptr,\n");
+        out.push_str("    .fallback_glyph = nullptr,
+");
     }
-    out.push_str(&format!("    .line_height = {},\n", line_height));
-    out.push_str(&format!("    .baseline = {}\n", baseline));
-    out.push_str("};\n");
+    out.push_str(&format!("    .line_height = {},
+", line_height));
+    out.push_str(&format!("    .baseline = {}
+", baseline));
+    out.push_str("};
+");
 
     out
 }
@@ -789,6 +837,12 @@ fn pack_bitmap_1b(gray: &[u8], w: u32, h: u32, threshold: u8) -> (Vec<u8>, usize
     }
     (packed, stride)
 }
+
+
+
+
+
+
 
 
 

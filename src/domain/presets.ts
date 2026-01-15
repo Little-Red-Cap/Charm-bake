@@ -46,11 +46,13 @@ export const DEFAULT_CONFIG: FontJobConfig = {
     exportName: "yahei_12",
     withComments: true,
     numberFormat: "bin",
-    binarizeMode: "mask",
+    binarizeMode: "mask_1bit",
     threshold: 128,
     gamma: 1.4,
     oversample: 2,
+    previewScale: 3,
 
     saveDir: null,
     saveFileName: "yahei_12.cppm",
 };
+
