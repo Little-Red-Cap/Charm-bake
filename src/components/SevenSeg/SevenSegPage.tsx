@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Card, Checkbox, Collapse, Form, Input, InputNumber, Layout, Radio, Select, Space, Typography, theme } from "antd";
+import Editor from "@monaco-editor/react";
 import { useUiStore } from "../../store/ui.store";
 import { t } from "../../domain/i18n";
 
@@ -642,9 +643,18 @@ export default function SevenSegPage() {
                             <Typography.Paragraph style={{ marginBottom: 8 }} type="secondary">
                                 {t(language, "sevenSegOutputHint")}
                             </Typography.Paragraph>
-                            <pre style={{ margin: 0, fontSize: 12, background: token.colorBgContainer, padding: 12 }}>
-                                {outputCode}
-                            </pre>
+                            <Editor
+                                height="240px"
+                                language="cpp"
+                                value={outputCode}
+                                options={{
+                                    readOnly: true,
+                                    fontSize: 12,
+                                    minimap: { enabled: false },
+                                    scrollBeyondLastLine: false,
+                                    wordWrap: "off",
+                                }}
+                            />
                         </Card>
                     </Space>
                 </Layout.Content>
