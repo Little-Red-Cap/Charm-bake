@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+﻿import { Suspense, lazy, useEffect, useState } from "react";
 import { Button, ConfigProvider, Layout, Menu, Space, Tooltip, message, theme as antdTheme } from "antd";
 import {
     CopyOutlined,
@@ -15,9 +15,9 @@ import StatusBar from "../components/StatusBar/StatusBar";
 import LeftConfigSider from "../components/LeftConfig/LeftConfigSider";
 import SavePanel from "../components/LeftConfig/panels/SavePanel";
 import RightWorkspace from "../components/RightWorkspace/RightWorkspace";
-import SevenSegPage from "../components/SevenSeg/SevenSegPage";
-import SinePage from "../components/Sine/SinePage";
-import ImagePage from "../components/Image/ImagePage";
+const SevenSegPage = lazy(() => import("../components/SevenSeg/SevenSegPage"));
+const SinePage = lazy(() => import("../components/Sine/SinePage"));
+const ImagePage = lazy(() => import("../components/Image/ImagePage"));
 import { DEFAULT_CONFIG } from "../domain/presets";
 import { useFontJobStore } from "../store/fontjob.store";
 import { useImageJobStore } from "../store/imagejob.store";
@@ -323,15 +323,17 @@ export default function App() {
                         </div>
                     </aside>
                     <main className="appMain">
-                        {!isReady
-                            ? t(language, "loading")
-                            : activeTab === "font"
-                                ? <FontTab />
-                                : activeTab === "image"
-                                    ? <ImageTab />
-                                    : activeTab === "sine"
-                                        ? <SineTab />
-                                        : <SevenSegTab />}
+                        <Suspense fallback={t(language, "loading")}>
+                            {!isReady
+                                ? t(language, "loading")
+                                : activeTab === "font"
+                                    ? <FontTab />
+                                    : activeTab === "image"
+                                        ? <ImageTab />
+                                        : activeTab === "sine"
+                                            ? <SineTab />
+                                            : <SevenSegTab />}
+                        </Suspense>
                     </main>
                 </div>
             </div>
