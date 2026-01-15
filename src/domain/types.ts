@@ -50,7 +50,8 @@ export interface PreviewGlyph {
     h: number;
     advance: number;
     bitmapB64: string;
-    monoB64?: string;\n    rawB64?: string;
+    monoB64?: string;
+    rawB64?: string;
 }
 
 export interface FontPreview {
