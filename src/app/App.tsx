@@ -16,6 +16,7 @@ import LeftConfigSider from "../components/LeftConfig/LeftConfigSider";
 import SavePanel from "../components/LeftConfig/panels/SavePanel";
 import RightWorkspace from "../components/RightWorkspace/RightWorkspace";
 import SevenSegPage from "../components/SevenSeg/SevenSegPage";
+import SinePage from "../components/Sine/SinePage";
 import { DEFAULT_CONFIG } from "../domain/presets";
 import { useFontJobStore } from "../store/fontjob.store";
 import { useUiStore } from "../store/ui.store";
@@ -139,8 +140,7 @@ function ImageTab() {
 }
 
 function SineTab() {
-    const language = useUiStore((s) => s.language);
-    return <div>{t(language, "sineTodo")}</div>;
+    return <SinePage />;
 }
 
 function SevenSegTab() {
