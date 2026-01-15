@@ -328,6 +328,9 @@ export default function ImagePage() {
     const [isDragging, setIsDragging] = useState(false);
     const [containerHeight, setContainerHeight] = useState(0);
     const splitContainerRef = useRef<HTMLDivElement | null>(null);
+    const previewContentRef = useRef<HTMLDivElement | null>(null);
+    const [previewContentHeight, setPreviewContentHeight] = useState(0);
+    const [hasUserResized, setHasUserResized] = useState(false);
 
     const codeText = useMemo(() => {
         if (!outputCode) return t(language, "statsNoOutput");
@@ -427,6 +430,17 @@ export default function ImagePage() {
         return () => observer.disconnect();
     }, []);
 
+    useEffect(() => {
+        const node = previewContentRef.current;
+        if (!node) return undefined;
+        const observer = new ResizeObserver((entries) => {
+            const entry = entries[0];
+            if (entry) setPreviewContentHeight(entry.contentRect.height);
+        });
+        observer.observe(node);
+        return () => observer.disconnect();
+    }, []);
+
     const availableHeight = Math.max(0, containerHeight - SPLIT_HANDLE_HEIGHT - SPLIT_GAP * 2);
     const previewHeight = availableHeight
         ? Math.min(
@@ -434,6 +448,15 @@ export default function ImagePage() {
               Math.max(PREVIEW_MIN_HEIGHT, availableHeight - CODE_MIN_HEIGHT)
           )
         : PREVIEW_MIN_HEIGHT;
+
+    useEffect(() => {
+        if (hasUserResized) return;
+        if (!availableHeight) return;
+        if (!previewContentHeight) return;
+        const maxPreview = Math.max(PREVIEW_MIN_HEIGHT, availableHeight - CODE_MIN_HEIGHT);
+        const desired = Math.min(maxPreview, Math.max(PREVIEW_MIN_HEIGHT, previewContentHeight));
+        setPreviewRatio(desired / availableHeight);
+    }, [availableHeight, previewContentHeight, hasUserResized]);
 
     return (
         <Layout style={{ height: "100%" }}>
@@ -561,7 +584,7 @@ export default function ImagePage() {
                             }}
                         >
                             <Card title={t(language, "imagePreviewTitle")}>
-                                <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
+                                <div ref={previewContentRef} style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
                                     {[
                                         { label: t(language, "imagePreviewOriginal"), url: imageUrl },
                                         { label: t(language, "imagePreviewProcessed"), url: processedUrl },
@@ -601,6 +624,7 @@ export default function ImagePage() {
                             aria-orientation="horizontal"
                             onMouseDown={(event) => {
                                 event.preventDefault();
+                                setHasUserResized(true);
                                 setIsDragging(true);
                             }}
                             style={{

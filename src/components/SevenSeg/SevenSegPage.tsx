@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Card, Checkbox, Collapse, Form, Input, InputNumber, Layout, Radio, Select, Space, Typography, theme } from "antd";
 import Editor from "@monaco-editor/react";
 import { useUiStore } from "../../store/ui.store";
@@ -35,6 +35,11 @@ const CHARSET_OPTIONS = [
     ...HEX.map((v) => ({ label: v, value: v })),
     { label: "SPACE", value: " " },
 ];
+
+const PREVIEW_MIN_HEIGHT = 240;
+const CODE_MIN_HEIGHT = 240;
+const SPLIT_GAP = 16;
+const SPLIT_HANDLE_HEIGHT = 8;
 
 function parseSegmentOrder(raw: string): Segment[] | null {
     const tokens = raw
@@ -166,6 +171,13 @@ export default function SevenSegPage() {
     const [charset, setCharset] = useState<string[]>([...DIGITS]);
     const [editChar, setEditChar] = useState("0");
     const [overrides, setOverrides] = useState<Record<string, Segment[]>>({});
+    const [previewRatio, setPreviewRatio] = useState(0.6);
+    const [isDragging, setIsDragging] = useState(false);
+    const [containerHeight, setContainerHeight] = useState(0);
+    const splitContainerRef = useRef<HTMLDivElement | null>(null);
+    const previewContentRef = useRef<HTMLDivElement | null>(null);
+    const [previewContentHeight, setPreviewContentHeight] = useState(0);
+    const [hasUserResized, setHasUserResized] = useState(false);
 
     const handlePresetChange = (value: "forward" | "reverse" | "custom") => {
         setOrderPreset(value);
@@ -359,6 +371,71 @@ export default function SevenSegPage() {
         scanMode,
         segmentOrder,
     ]);
+
+    useEffect(() => {
+        if (!isDragging) return undefined;
+
+        const handleMove = (event: MouseEvent) => {
+            const container = splitContainerRef.current;
+            if (!container) return;
+            const rect = container.getBoundingClientRect();
+            const y = event.clientY - rect.top;
+            const available = rect.height - SPLIT_HANDLE_HEIGHT - SPLIT_GAP * 2;
+            if (available <= 0) return;
+            const maxPreview = Math.max(PREVIEW_MIN_HEIGHT, available - CODE_MIN_HEIGHT);
+            const clampedPreview = Math.min(maxPreview, Math.max(PREVIEW_MIN_HEIGHT, y - SPLIT_GAP));
+            setPreviewRatio(clampedPreview / available);
+        };
+
+        const handleUp = () => setIsDragging(false);
+
+        window.addEventListener("mousemove", handleMove);
+        window.addEventListener("mouseup", handleUp);
+        return () => {
+            window.removeEventListener("mousemove", handleMove);
+            window.removeEventListener("mouseup", handleUp);
+        };
+    }, [isDragging]);
+
+    useEffect(() => {
+        const container = splitContainerRef.current;
+        if (!container) return undefined;
+
+        const observer = new ResizeObserver((entries) => {
+            const entry = entries[0];
+            if (entry) setContainerHeight(entry.contentRect.height);
+        });
+        observer.observe(container);
+        return () => observer.disconnect();
+    }, []);
+
+    useEffect(() => {
+        const node = previewContentRef.current;
+        if (!node) return undefined;
+        const observer = new ResizeObserver((entries) => {
+            const entry = entries[0];
+            if (entry) setPreviewContentHeight(entry.contentRect.height);
+        });
+        observer.observe(node);
+        return () => observer.disconnect();
+    }, []);
+
+    const availableHeight = Math.max(0, containerHeight - SPLIT_HANDLE_HEIGHT - SPLIT_GAP * 2);
+    const previewHeight = availableHeight
+        ? Math.min(
+              Math.max(PREVIEW_MIN_HEIGHT, Math.round(previewRatio * availableHeight)),
+              Math.max(PREVIEW_MIN_HEIGHT, availableHeight - CODE_MIN_HEIGHT)
+          )
+        : PREVIEW_MIN_HEIGHT;
+
+    useEffect(() => {
+        if (hasUserResized) return;
+        if (!availableHeight) return;
+        if (!previewContentHeight) return;
+        const maxPreview = Math.max(PREVIEW_MIN_HEIGHT, availableHeight - CODE_MIN_HEIGHT);
+        const desired = Math.min(maxPreview, Math.max(PREVIEW_MIN_HEIGHT, previewContentHeight));
+        setPreviewRatio(desired / availableHeight);
+    }, [availableHeight, previewContentHeight, hasUserResized]);
 
     return (
         <Layout style={{ height: "100%" }}>
@@ -603,10 +680,22 @@ export default function SevenSegPage() {
                     </div>
                 </Layout.Sider>
 
-                <Layout.Content style={{ padding: 16, overflow: "auto", background: token.colorBgLayout }}>
-                    <Space direction="vertical" size="large" style={{ width: "100%" }}>
-                        <Card title={t(language, "sevenSegPreviewTitle")}>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
+                <Layout.Content style={{ padding: 16, overflow: "hidden", background: token.colorBgLayout }}>
+                    <div
+                        ref={splitContainerRef}
+                        style={{ display: "flex", flexDirection: "column", gap: 16, height: "100%" }}
+                    >
+                        <div
+                            style={{
+                                flex: `0 0 ${previewHeight}px`,
+                                maxHeight: `${previewHeight}px`,
+                                minHeight: PREVIEW_MIN_HEIGHT,
+                                overflow: "auto",
+                                paddingRight: 4,
+                            }}
+                        >
+                            <Card title={t(language, "sevenSegPreviewTitle")}>
+                            <div ref={previewContentRef} style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
                                 {previewChars.map((ch, index) => {
                                     const isActive = scanMode === "dynamic" && index === activeDigit;
                                     return (
@@ -637,26 +726,51 @@ export default function SevenSegPage() {
                                     );
                                 })}
                             </div>
-                        </Card>
+                            </Card>
+                        </div>
 
-                        <Card title={t(language, "sevenSegOutputTitle")}>
-                            <Typography.Paragraph style={{ marginBottom: 8 }} type="secondary">
-                                {t(language, "sevenSegOutputHint")}
-                            </Typography.Paragraph>
-                            <Editor
-                                height="240px"
-                                language="cpp"
-                                value={outputCode}
-                                options={{
-                                    readOnly: true,
-                                    fontSize: 12,
-                                    minimap: { enabled: false },
-                                    scrollBeyondLastLine: false,
-                                    wordWrap: "off",
-                                }}
-                            />
-                        </Card>
-                    </Space>
+                        <div
+                            role="separator"
+                            aria-orientation="horizontal"
+                            onMouseDown={(event) => {
+                                event.preventDefault();
+                                setHasUserResized(true);
+                                setIsDragging(true);
+                            }}
+                            style={{
+                                height: SPLIT_HANDLE_HEIGHT,
+                                cursor: "row-resize",
+                                borderRadius: 6,
+                                background: token.colorFillSecondary,
+                            }}
+                        />
+
+                        <div style={{ flex: "1 1 0", minHeight: CODE_MIN_HEIGHT, overflow: "hidden" }}>
+                            <Card
+                                title={t(language, "sevenSegOutputTitle")}
+                                style={{ height: "100%" }}
+                                styles={{ body: { padding: 0, height: "100%" } }}
+                            >
+                                <div style={{ padding: "8px 12px" }}>
+                                    <Typography.Paragraph style={{ marginBottom: 8 }} type="secondary">
+                                        {t(language, "sevenSegOutputHint")}
+                                    </Typography.Paragraph>
+                                </div>
+                                <Editor
+                                    height="100%"
+                                    language="cpp"
+                                    value={outputCode}
+                                    options={{
+                                        readOnly: true,
+                                        fontSize: 12,
+                                        minimap: { enabled: false },
+                                        scrollBeyondLastLine: false,
+                                        wordWrap: "off",
+                                    }}
+                                />
+                            </Card>
+                        </div>
+                    </div>
                 </Layout.Content>
             </Layout>
         </Layout>
