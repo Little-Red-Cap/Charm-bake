@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button, Card, Checkbox, Collapse, Form, Input, InputNumber, Layout, Radio, Select, Space, Typography, theme } from "antd";
-import Editor from "@monaco-editor/react";
 import { useUiStore } from "../../store/ui.store";
 import { t } from "../../domain/i18n";
+import CodeEditor from "../common/CodeEditor";
+import SplitPane from "../common/SplitPane";
 
 type Segment = "a" | "b" | "c" | "d" | "e" | "f" | "g" | "dp";
 
@@ -38,8 +39,6 @@ const CHARSET_OPTIONS = [
 
 const PREVIEW_MIN_HEIGHT = 240;
 const CODE_MIN_HEIGHT = 240;
-const SPLIT_GAP = 16;
-const SPLIT_HANDLE_HEIGHT = 8;
 
 function parseSegmentOrder(raw: string): Segment[] | null {
     const tokens = raw
@@ -171,13 +170,6 @@ export default function SevenSegPage() {
     const [charset, setCharset] = useState<string[]>([...DIGITS]);
     const [editChar, setEditChar] = useState("0");
     const [overrides, setOverrides] = useState<Record<string, Segment[]>>({});
-    const [previewRatio, setPreviewRatio] = useState(0.6);
-    const [isDragging, setIsDragging] = useState(false);
-    const [containerHeight, setContainerHeight] = useState(0);
-    const splitContainerRef = useRef<HTMLDivElement | null>(null);
-    const previewContentRef = useRef<HTMLDivElement | null>(null);
-    const [previewContentHeight, setPreviewContentHeight] = useState(0);
-    const [hasUserResized, setHasUserResized] = useState(false);
 
     const handlePresetChange = (value: "forward" | "reverse" | "custom") => {
         setOrderPreset(value);
@@ -372,70 +364,7 @@ export default function SevenSegPage() {
         segmentOrder,
     ]);
 
-    useEffect(() => {
-        if (!isDragging) return undefined;
-
-        const handleMove = (event: MouseEvent) => {
-            const container = splitContainerRef.current;
-            if (!container) return;
-            const rect = container.getBoundingClientRect();
-            const y = event.clientY - rect.top;
-            const available = rect.height - SPLIT_HANDLE_HEIGHT - SPLIT_GAP * 2;
-            if (available <= 0) return;
-            const maxPreview = Math.max(PREVIEW_MIN_HEIGHT, available - CODE_MIN_HEIGHT);
-            const clampedPreview = Math.min(maxPreview, Math.max(PREVIEW_MIN_HEIGHT, y - SPLIT_GAP));
-            setPreviewRatio(clampedPreview / available);
-        };
-
-        const handleUp = () => setIsDragging(false);
-
-        window.addEventListener("mousemove", handleMove);
-        window.addEventListener("mouseup", handleUp);
-        return () => {
-            window.removeEventListener("mousemove", handleMove);
-            window.removeEventListener("mouseup", handleUp);
-        };
-    }, [isDragging]);
-
-    useEffect(() => {
-        const container = splitContainerRef.current;
-        if (!container) return undefined;
-
-        const observer = new ResizeObserver((entries) => {
-            const entry = entries[0];
-            if (entry) setContainerHeight(entry.contentRect.height);
-        });
-        observer.observe(container);
-        return () => observer.disconnect();
-    }, []);
-
-    useEffect(() => {
-        const node = previewContentRef.current;
-        if (!node) return undefined;
-        const observer = new ResizeObserver((entries) => {
-            const entry = entries[0];
-            if (entry) setPreviewContentHeight(entry.contentRect.height);
-        });
-        observer.observe(node);
-        return () => observer.disconnect();
-    }, []);
-
-    const availableHeight = Math.max(0, containerHeight - SPLIT_HANDLE_HEIGHT - SPLIT_GAP * 2);
-    const previewHeight = availableHeight
-        ? Math.min(
-              Math.max(PREVIEW_MIN_HEIGHT, Math.round(previewRatio * availableHeight)),
-              Math.max(PREVIEW_MIN_HEIGHT, availableHeight - CODE_MIN_HEIGHT)
-          )
-        : PREVIEW_MIN_HEIGHT;
-
-    useEffect(() => {
-        if (hasUserResized) return;
-        if (!availableHeight) return;
-        if (!previewContentHeight) return;
-        const maxPreview = Math.max(PREVIEW_MIN_HEIGHT, availableHeight - CODE_MIN_HEIGHT);
-        const desired = Math.min(maxPreview, Math.max(PREVIEW_MIN_HEIGHT, previewContentHeight));
-        setPreviewRatio(desired / availableHeight);
-    }, [availableHeight, previewContentHeight, hasUserResized]);
+    
 
     return (
         <Layout style={{ height: "100%" }}>
@@ -681,71 +610,47 @@ export default function SevenSegPage() {
                 </Layout.Sider>
 
                 <Layout.Content style={{ padding: 16, overflow: "hidden", background: token.colorBgLayout }}>
-                    <div
-                        ref={splitContainerRef}
-                        style={{ display: "flex", flexDirection: "column", gap: 16, height: "100%" }}
-                    >
-                        <div
-                            style={{
-                                flex: `0 0 ${previewHeight}px`,
-                                maxHeight: `${previewHeight}px`,
-                                minHeight: PREVIEW_MIN_HEIGHT,
-                                overflow: "auto",
-                                paddingRight: 4,
-                            }}
-                        >
+                    <SplitPane
+                        minTop={PREVIEW_MIN_HEIGHT}
+                        minBottom={CODE_MIN_HEIGHT}
+                        initialRatio={0.6}
+                        handleStyle={{ background: token.colorFillSecondary }}
+                        top={
                             <Card title={t(language, "sevenSegPreviewTitle")}>
-                            <div ref={previewContentRef} style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
-                                {previewChars.map((ch, index) => {
-                                    const isActive = scanMode === "dynamic" && index === activeDigit;
-                                    return (
-                                        <div
-                                            key={`${ch}-${index}`}
-                                            className={`sevensegDigit ${scanMode === "dynamic" ? "isScanning" : ""} ${isActive ? "isActive" : ""}`}
-                                            style={{
-                                                display: "flex",
-                                                flexDirection: "column",
-                                                alignItems: "center",
-                                                padding: 6,
-                                                borderRadius: 8,
-                                                border: isActive ? `1px solid ${token.colorPrimary}` : "1px solid transparent",
-                                                background: isActive ? token.colorPrimaryBg : "transparent",
-                                                color: token.colorText,
-                                            }}
-                                        >
-                                        <SevenSegSvg active={new Set(segmentsForChar(ch))} size={80} highlight={isActive} />
-                                            <Typography.Text type="secondary" style={{ marginTop: 4 }}>
-                                                {scanMode === "dynamic" ? `${index + 1}` : ch || " "}
-                                            </Typography.Text>
-                                            {scanMode === "dynamic" ? (
-                                                <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                                                    {digitValues[index] ?? ""}
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
+                                    {previewChars.map((ch, index) => {
+                                        const isActive = scanMode === "dynamic" && index === activeDigit;
+                                        return (
+                                            <div
+                                                key={`${ch}-${index}`}
+                                                className={`sevensegDigit ${scanMode === "dynamic" ? "isScanning" : ""} ${isActive ? "isActive" : ""}`}
+                                                style={{
+                                                    display: "flex",
+                                                    flexDirection: "column",
+                                                    alignItems: "center",
+                                                    padding: 6,
+                                                    borderRadius: 8,
+                                                    border: isActive ? `1px solid ${token.colorPrimary}` : "1px solid transparent",
+                                                    background: isActive ? token.colorPrimaryBg : "transparent",
+                                                    color: token.colorText,
+                                                }}
+                                            >
+                                                <SevenSegSvg active={new Set(segmentsForChar(ch))} size={80} highlight={isActive} />
+                                                <Typography.Text type="secondary" style={{ marginTop: 4 }}>
+                                                    {scanMode === "dynamic" ? `${index + 1}` : ch || " "}
                                                 </Typography.Text>
-                                            ) : null}
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                                                {scanMode === "dynamic" ? (
+                                                    <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                                                        {digitValues[index] ?? ""}
+                                                    </Typography.Text>
+                                                ) : null}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </Card>
-                        </div>
-
-                        <div
-                            role="separator"
-                            aria-orientation="horizontal"
-                            onMouseDown={(event) => {
-                                event.preventDefault();
-                                setHasUserResized(true);
-                                setIsDragging(true);
-                            }}
-                            style={{
-                                height: SPLIT_HANDLE_HEIGHT,
-                                cursor: "row-resize",
-                                borderRadius: 6,
-                                background: token.colorFillSecondary,
-                            }}
-                        />
-
-                        <div style={{ flex: "1 1 0", minHeight: CODE_MIN_HEIGHT, overflow: "hidden" }}>
+                        }
+                        bottom={
                             <Card
                                 title={t(language, "sevenSegOutputTitle")}
                                 style={{ height: "100%" }}
@@ -756,21 +661,10 @@ export default function SevenSegPage() {
                                         {t(language, "sevenSegOutputHint")}
                                     </Typography.Paragraph>
                                 </div>
-                                <Editor
-                                    height="100%"
-                                    language="cpp"
-                                    value={outputCode}
-                                    options={{
-                                        readOnly: true,
-                                        fontSize: 12,
-                                        minimap: { enabled: false },
-                                        scrollBeyondLastLine: false,
-                                        wordWrap: "off",
-                                    }}
-                                />
+                                <CodeEditor value={outputCode} height="100%" />
                             </Card>
-                        </div>
-                    </div>
+                        }
+                    />
                 </Layout.Content>
             </Layout>
         </Layout>
