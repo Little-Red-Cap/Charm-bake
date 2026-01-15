@@ -1,5 +1,7 @@
-﻿import type { FontJobConfig, FontGenerateResult, PreviewGlyph } from "../../domain/types";
+import type { FontJobConfig, FontGenerateResult, PreviewGlyph } from "../../domain/types";
 import { invoke } from "@tauri-apps/api/core";
+import { useUiStore } from "../../store/ui.store";
+import { t } from "../../domain/i18n";
 
 type BackendPreviewGlyph = {
     codepoint: number;
@@ -48,10 +50,11 @@ function normalizeText(value: string | null | undefined): string | undefined {
 }
 
 function buildJob(cfg: FontJobConfig) {
+    const language = useUiStore.getState().language;
     if (cfg.fontSourceMode === "system") {
         const family = (cfg.systemFontName ?? "").trim();
         if (!family) {
-            throw new Error("请选择系统字体");
+            throw new Error(t(language, "generatorNeedSystemFont"));
         }
         return {
             source: { mode: "system", family },
@@ -76,7 +79,7 @@ function buildJob(cfg: FontJobConfig) {
 
     const path = (cfg.fontFilePath ?? "").trim();
     if (!path) {
-        throw new Error("请选择字体文件路径");
+        throw new Error(t(language, "generatorNeedFontFile"));
     }
     return {
         source: { mode: "file", path },
@@ -101,10 +104,11 @@ function buildJob(cfg: FontJobConfig) {
 
 export async function generateFont(cfg: FontJobConfig): Promise<FontGenerateResult> {
     const job = buildJob(cfg);
+    const language = useUiStore.getState().language;
 
     const result = await invoke<BackendResult>("generate_font", { job });
     if (!result.ok) {
-        const msg = result.warnings?.join("\n") || "Generate failed";
+        const msg = result.warnings?.join("\n") || t(language, "generateFailed");
         throw new Error(msg);
     }
 
@@ -140,6 +144,7 @@ export async function generateFont(cfg: FontJobConfig): Promise<FontGenerateResu
 
 export async function exportFont(cfg: FontJobConfig, outPath: string | null, filename: string): Promise<string> {
     const job = buildJob(cfg);
+    const language = useUiStore.getState().language;
     const result = await invoke<BackendExportResult>("export_font", {
         args: {
             job,
@@ -148,7 +153,7 @@ export async function exportFont(cfg: FontJobConfig, outPath: string | null, fil
         },
     });
     if (!result.ok) {
-        const msg = result.warnings?.join("\n") || "Export failed";
+        const msg = result.warnings?.join("\n") || t(language, "exportFailed");
         throw new Error(msg);
     }
     return result.output_path ?? "";

@@ -1,15 +1,18 @@
-﻿import { Form, Input, Space, Typography } from "antd";
+import { Form, Input, Space, Typography } from "antd";
 import { useFontJobStore } from "../../../store/fontjob.store";
+import { useUiStore } from "../../../store/ui.store";
+import { t } from "../../../domain/i18n";
 
 export default function CharsetPanel() {
     const { config, setConfig } = useFontJobStore();
+    const language = useUiStore((s) => s.language);
 
     const startCode = config.rangeStart.codePointAt(0);
     const endCode = config.rangeEnd.codePointAt(0);
 
     return (
         <Form layout="vertical">
-            <Form.Item label="字符范围（单字符）">
+            <Form.Item label={t(language, "charsetRangeLabel")}>
                 <Space style={{ width: "100%" }} align="start">
                     <Input
                         maxLength={2}
@@ -17,7 +20,7 @@ export default function CharsetPanel() {
                         onChange={(e) => setConfig({ rangeStart: e.target.value })}
                         style={{ width: 80 }}
                     />
-                    <Typography.Text style={{ paddingTop: 6 }}>到</Typography.Text>
+                    <Typography.Text style={{ paddingTop: 6 }}>{t(language, "charsetTo")}</Typography.Text>
                     <Input
                         maxLength={2}
                         value={config.rangeEnd}
@@ -25,21 +28,23 @@ export default function CharsetPanel() {
                         style={{ width: 80 }}
                     />
                     <div style={{ paddingTop: 6, opacity: 0.7 }}>
-                        {startCode != null && endCode != null ? `码点：${startCode} - ${endCode}` : null}
+                        {startCode != null && endCode != null
+                            ? t(language, "charsetCodepointRange", { start: startCode, end: endCode })
+                            : null}
                     </div>
                 </Space>
             </Form.Item>
 
-            <Form.Item label="自定义字符（会与范围合并、去重）">
+            <Form.Item label={t(language, "charsetCustomLabel")}>
                 <Input.TextArea
                     autoSize={{ minRows: 2, maxRows: 6 }}
                     value={config.customChars}
                     onChange={(e) => setConfig({ customChars: e.target.value })}
-                    placeholder="例如：℃★你好"
+                    placeholder={t(language, "charsetCustomPlaceholder")}
                 />
             </Form.Item>
 
-            <Form.Item label="Fallback 字符（缺字时使用）">
+            <Form.Item label={t(language, "charsetFallbackLabel")}>
                 <Input
                     maxLength={2}
                     value={config.fallbackChar}
@@ -49,7 +54,7 @@ export default function CharsetPanel() {
             </Form.Item>
 
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                TODO：显示最终字符集数量、重复字符提示、码点列表视图
+                {t(language, "charsetTodo")}
             </Typography.Text>
         </Form>
     );

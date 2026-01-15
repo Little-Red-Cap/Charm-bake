@@ -1,13 +1,16 @@
-﻿import { Form, InputNumber, Slider, Typography, Descriptions } from "antd";
+import { Form, InputNumber, Slider, Typography, Descriptions } from "antd";
 import { useFontJobStore } from "../../../store/fontjob.store";
+import { useUiStore } from "../../../store/ui.store";
+import { t } from "../../../domain/i18n";
 
 export default function SizePanel() {
     const { config, setConfig, result } = useFontJobStore();
+    const language = useUiStore((s) => s.language);
     const stats = result?.stats;
 
     return (
         <Form layout="vertical">
-            <Form.Item label="字号（像素高度）">
+            <Form.Item label={t(language, "sizeLabel")}>
                 <Slider
                     min={4}
                     max={64}
@@ -24,13 +27,13 @@ export default function SizePanel() {
             </Form.Item>
 
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                像素参考（示例）：5x7 常见字号约 8；8x16 常见字号约 16（后续可做更智能提示）
+                {t(language, "sizeHint")}
             </Typography.Text>
 
             <div style={{ marginTop: 12 }}>
                 <Descriptions size="small" column={2} bordered>
-                    <Descriptions.Item label="line_height">{stats?.lineHeight ?? "-"}</Descriptions.Item>
-                    <Descriptions.Item label="baseline">{stats?.baseline ?? "-"}</Descriptions.Item>
+                    <Descriptions.Item label={t(language, "sizeLineHeight")}>{stats?.lineHeight ?? "-"}</Descriptions.Item>
+                    <Descriptions.Item label={t(language, "sizeBaseline")}>{stats?.baseline ?? "-"}</Descriptions.Item>
                 </Descriptions>
             </div>
         </Form>

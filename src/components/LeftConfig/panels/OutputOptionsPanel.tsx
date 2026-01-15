@@ -1,55 +1,57 @@
-﻿import { Form, Input, Radio, Checkbox, Space, Typography, Button, Slider } from "antd";
+import { Form, Input, Radio, Checkbox, Space, Typography, Button } from "antd";
 import { useFontJobStore } from "../../../store/fontjob.store";
+import { useUiStore } from "../../../store/ui.store";
+import { t } from "../../../domain/i18n";
 
 export default function OutputOptionsPanel() {
     const { config, setConfig, applySuggestedNames } = useFontJobStore();
+    const language = useUiStore((s) => s.language);
 
     return (
         <Form layout="vertical">
-            <Form.Item label="输出类型">
+            <Form.Item label={t(language, "outputType")}>
                 <Radio.Group
                     value={config.outputKind}
                     onChange={(e) => setConfig({ outputKind: e.target.value })}
                 >
-                    <Radio value="cpp_module">C++20 Module（cppm）</Radio>
+                    <Radio value="cpp_module">{t(language, "outputCppModule")}</Radio>
                     <Radio value="cpp" disabled>
-                        C++（TODO）
+                        {t(language, "outputCppTodo")}
                     </Radio>
                     <Radio value="c" disabled>
-                        C（TODO）
+                        {t(language, "outputCTodo")}
                     </Radio>
                 </Radio.Group>
             </Form.Item>
 
-            <Form.Item label="模块名（module name）">
+            <Form.Item label={t(language, "moduleNameLabel")}>
                 <Input value={config.moduleName} onChange={(e) => setConfig({ moduleName: e.target.value })} />
             </Form.Item>
 
-            <Form.Item label="导出字体对象名（export name）">
+            <Form.Item label={t(language, "exportNameLabel")}>
                 <Input value={config.exportName} onChange={(e) => setConfig({ exportName: e.target.value })} />
                 <Form.Item>
-                    <Button onClick={() => applySuggestedNames()}>按当前字体字号生成默认命名</Button>
+                    <Button onClick={() => applySuggestedNames()}>{t(language, "applySuggestedNames")}</Button>
                 </Form.Item>
             </Form.Item>
 
             <Form.Item>
                 <Space direction="vertical" style={{ width: "100%" }}>
                     <Checkbox checked={config.withComments} onChange={(e) => setConfig({ withComments: e.target.checked })}>
-                        生成注释（如 // code 33 ('!')）
+                        {t(language, "withCommentsLabel")}
                     </Checkbox>
 
                     <div>
-                        <Typography.Text style={{ marginRight: 8 }}>点阵数据格式：</Typography.Text>
+                        <Typography.Text style={{ marginRight: 8 }}>{t(language, "numberFormatLabel")}</Typography.Text>
                         <Radio.Group
                             value={config.numberFormat}
                             onChange={(e) => setConfig({ numberFormat: e.target.value })}
                         >
-                            <Radio value="bin">Bin</Radio>
-                            <Radio value="dec">Dec</Radio>
-                            <Radio value="hex">Hex</Radio>
+                            <Radio value="bin">{t(language, "numberFormatBin")}</Radio>
+                            <Radio value="dec">{t(language, "numberFormatDec")}</Radio>
+                            <Radio value="hex">{t(language, "numberFormatHex")}</Radio>
                         </Radio.Group>
                     </div>
-
                 </Space>
             </Form.Item>
 

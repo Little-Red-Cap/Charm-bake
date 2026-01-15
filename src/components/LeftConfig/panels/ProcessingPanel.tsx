@@ -1,21 +1,24 @@
-﻿import { Form, Radio, Slider, Space, Typography } from "antd";
+import { Form, Radio, Slider, Space, Typography } from "antd";
 import { useFontJobStore } from "../../../store/fontjob.store";
+import { useUiStore } from "../../../store/ui.store";
+import { t } from "../../../domain/i18n";
 
 export default function ProcessingPanel() {
     const { config, setConfig } = useFontJobStore();
+    const language = useUiStore((s) => s.language);
 
     const showAdvanced = config.binarizeMode === "gamma_oversample";
     const showThreshold = config.binarizeMode !== "mask_1bit";
 
     return (
         <Form layout="vertical">
-            <Form.Item label="二值化模式">
+            <Form.Item label={t(language, "processBinarizeMode")}>
                 <Radio.Group
                     value={config.binarizeMode}
                     onChange={(e) => setConfig({ binarizeMode: e.target.value })}
                 >
-                    <Radio value="mask_1bit">Python 风格（1-bit mask）</Radio>
-                    <Radio value="gamma_oversample">Gamma + Oversample</Radio>
+                    <Radio value="mask_1bit">{t(language, "processModeMask")}</Radio>
+                    <Radio value="gamma_oversample">{t(language, "processModeGamma")}</Radio>
                 </Radio.Group>
             </Form.Item>
 
@@ -23,7 +26,7 @@ export default function ProcessingPanel() {
                 <Form.Item
                     label={
                         <div style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
-                            <span>灰度过滤强度</span>
+                            <span>{t(language, "processThreshold")}</span>
                             <Typography.Text type="secondary">{config.threshold}</Typography.Text>
                         </div>
                     }
@@ -64,10 +67,10 @@ export default function ProcessingPanel() {
             ) : null}
 
             {showAdvanced ? (
-                <Form.Item label="高级（Gamma / Oversample）">
+                <Form.Item label={t(language, "processAdvanced")}>
                     <Space direction="vertical" style={{ width: "100%" }}>
                         <div>
-                            <Typography.Text style={{ marginRight: 8 }}>Gamma</Typography.Text>
+                            <Typography.Text style={{ marginRight: 8 }}>{t(language, "processGamma")}</Typography.Text>
                             <Slider
                                 min={0.6}
                                 max={2.2}
@@ -79,7 +82,7 @@ export default function ProcessingPanel() {
                             />
                         </div>
                         <div>
-                            <Typography.Text style={{ marginRight: 8 }}>Oversample</Typography.Text>
+                            <Typography.Text style={{ marginRight: 8 }}>{t(language, "processOversample")}</Typography.Text>
                             <Slider
                                 min={1}
                                 max={4}
@@ -96,4 +99,3 @@ export default function ProcessingPanel() {
         </Form>
     );
 }
-

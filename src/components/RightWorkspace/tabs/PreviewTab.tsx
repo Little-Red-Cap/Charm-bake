@@ -1,7 +1,9 @@
-﻿import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Card, Empty, Slider, Space, Typography } from "antd";
 import type { PreviewGlyph } from "../../../domain/types";
 import { useFontJobStore } from "../../../store/fontjob.store";
+import { useUiStore } from "../../../store/ui.store";
+import { t } from "../../../domain/i18n";
 
 function decodeBase64(b64: string): Uint8Array {
     const binary = atob(b64);
@@ -156,17 +158,19 @@ function MonoCanvas({ glyph, scale }: { glyph: PreviewGlyph; scale: number }) {
 
 export default function PreviewTab() {
     const { result, config, setConfig } = useFontJobStore();
+    const language = useUiStore((s) => s.language);
     const glyphs = result?.preview?.glyphs ?? [];
     const scale = config.previewScale ?? 3;
+
     const items = useMemo(() => glyphs, [glyphs]);
     if (!items.length) {
-        return <Empty description="No preview yet" />;
+        return <Empty description={t(language, "previewEmpty")} />;
     }
 
     return (
         <Card>
             <Space align="center" style={{ marginBottom: 12 }}>
-                <Typography.Text>缩放</Typography.Text>
+                <Typography.Text>{t(language, "previewScaleLabel")}</Typography.Text>
                 <Slider
                     min={1}
                     max={10}
@@ -204,15 +208,15 @@ export default function PreviewTab() {
                             }}
                         >
                             <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "0 0 auto" }}>
-                                <div style={{ fontSize: 11, color: "rgba(0, 0, 0, 0.6)" }}>Raw</div>
+                                <div style={{ fontSize: 11, color: "rgba(0, 0, 0, 0.6)" }}>{t(language, "previewRaw")}</div>
                                 <RawCanvas glyph={g} scale={scale} />
                             </div>
                             <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "0 0 auto" }}>
-                                <div style={{ fontSize: 11, color: "rgba(0, 0, 0, 0.6)" }}>Gray</div>
+                                <div style={{ fontSize: 11, color: "rgba(0, 0, 0, 0.6)" }}>{t(language, "previewGray")}</div>
                                 <GrayCanvas glyph={g} scale={scale} />
                             </div>
                             <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: "0 0 auto" }}>
-                                <div style={{ fontSize: 11, color: "rgba(0, 0, 0, 0.6)" }}>Mono</div>
+                                <div style={{ fontSize: 11, color: "rgba(0, 0, 0, 0.6)" }}>{t(language, "previewMono")}</div>
                                 <MonoCanvas glyph={g} scale={scale} />
                             </div>
                         </div>

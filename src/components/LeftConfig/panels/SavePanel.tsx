@@ -137,7 +137,7 @@ export default function SavePanel() {
                     <Form.Item
                         label={t(language, "saveSettingsConfigName")}
                         name="configName"
-                        rules={[{ required: true, message: t(language, "saveSettingsConfigName") }]}
+                        rules={[{ required: true, message: t(language, "saveSettingsConfigNameRequired") }]}
                     >
                         <Input placeholder="settings.json" />
                     </Form.Item>

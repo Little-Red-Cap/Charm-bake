@@ -1,13 +1,16 @@
-﻿import { Card, Typography } from "antd";
+import { Card, Typography } from "antd";
+import { useUiStore } from "../../../store/ui.store";
+import { t } from "../../../domain/i18n";
 
 export default function DotMatrixTab() {
+    const language = useUiStore((s) => s.language);
+
     return (
         <Card>
-            <Typography.Title level={5}>TODO：点阵渲染器</Typography.Title>
+            <Typography.Title level={5}>{t(language, "dotMatrixTodoTitle")}</Typography.Title>
             <Typography.Paragraph type="secondary">
-                {/*后续：选择某字符 -> 展示 width/height/advance/offset，并用 Canvas 绘制像素点阵。*/}
+                {/*???????? -> ?? width/height/advance/offset??? Canvas ???????*/}
             </Typography.Paragraph>
         </Card>
     );
 }
-

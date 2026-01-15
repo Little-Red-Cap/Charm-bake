@@ -3,9 +3,12 @@ import { Form, Input, Radio, Space, Button, Typography, Select } from "antd";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useFontJobStore } from "../../../store/fontjob.store";
+import { useUiStore } from "../../../store/ui.store";
+import { t } from "../../../domain/i18n";
 
 export default function FontSelectPanel() {
     const { config, setConfig } = useFontJobStore();
+    const language = useUiStore((s) => s.language);
     const [systemFonts, setSystemFonts] = useState<Array<{ family: string }>>([]);
     const [loading, setLoading] = useState(false);
 
@@ -45,46 +48,45 @@ export default function FontSelectPanel() {
 
     return (
         <Form layout="horizontal" labelCol={{ flex: "0 0 72px" }} wrapperCol={{ flex: "1 1 0" }}>
-            <Form.Item label="字体来源">
+            <Form.Item label={t(language, "fontSource")}>
                 <Radio.Group
                     value={config.fontSourceMode}
                     onChange={(e) => setConfig({ fontSourceMode: e.target.value })}
                 >
-                    <Radio value="system">系统字体</Radio>
-                    <Radio value="file">字体文件</Radio>
+                    <Radio value="system">{t(language, "fontSourceSystem")}</Radio>
+                    <Radio value="file">{t(language, "fontSourceFile")}</Radio>
                 </Radio.Group>
             </Form.Item>
 
             {config.fontSourceMode === "system" ? (
-                <Form.Item label="系统字体">
+                <Form.Item label={t(language, "systemFontLabel")}>
                     <Select
                         showSearch
                         loading={loading}
                         virtual={false}
                         dropdownStyle={{ maxHeight: 320, overflow: "auto" }}
                         value={config.systemFontName ?? undefined}
-                        placeholder={loading ? "加载中..." : "选择系统字体"}
+                        placeholder={loading ? t(language, "systemFontLoading") : t(language, "systemFontSelect")}
                         options={fontOptions}
                         onChange={(v) => setConfig({ systemFontName: v, fontFilePath: null })}
                         optionFilterProp="label"
                     />
                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                        枚举系统字体（按名称显示，内部使用字体文件路径）。
+                        {t(language, "systemFontHint")}
                     </Typography.Text>
                 </Form.Item>
             ) : (
-                <Form.Item label="文件路径">
+                <Form.Item label={t(language, "filePathLabel")}>
                     <Space.Compact style={{ width: "100%" }}>
                         <Input
                             value={config.fontFilePath ?? ""}
-                            placeholder="选择 .ttf/.otf 文件"
+                            placeholder={t(language, "filePathPlaceholder")}
                             onChange={(e) => setConfig({ fontFilePath: e.target.value, systemFontName: null })}
                         />
-                        <Button onClick={pickFontFile}>选择文件</Button>
+                        <Button onClick={pickFontFile}>{t(language, "chooseFile")}</Button>
                     </Space.Compact>
                 </Form.Item>
             )}
         </Form>
     );
 }
-
