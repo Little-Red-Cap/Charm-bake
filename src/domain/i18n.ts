@@ -201,17 +201,13 @@ const zh = {
     sinePreviewTitle: "波形预览",
     sinePreviewZoom: "缩放",
     sineAxisTitle: "坐标轴",
-    sineAxisAuto: "自动范围",
-    sineXAxisScale: "横轴缩放",
-    sineYAxisAuto: "纵轴范围",
-    sineYAxisMin: "最小值",
-    sineYAxisMax: "最大值",
     sineOutputCodeTitle: "输出代码",
     sineStatMin: "最小值",
     sineStatMax: "最大值",
     sineStatAvg: "平均值",
     sineStatPoint: "采样点",
     sineWheelHint: "滚轮调节：Shift 加大步进，Alt 细调",
+    sineCtrlWheelHint: "按住 Ctrl + 滚轮调节数值",
 } as const;
 
 export type I18nKey = keyof typeof zh;
@@ -417,17 +413,13 @@ const en: Record<I18nKey, string> = {
     sinePreviewTitle: "Preview",
     sinePreviewZoom: "Zoom",
     sineAxisTitle: "Axes",
-    sineAxisAuto: "Auto range",
-    sineXAxisScale: "X scale",
-    sineYAxisAuto: "Y range",
-    sineYAxisMin: "Min",
-    sineYAxisMax: "Max",
     sineOutputCodeTitle: "Output code",
     sineStatMin: "Min",
     sineStatMax: "Max",
     sineStatAvg: "Avg",
     sineStatPoint: "Sample",
     sineWheelHint: "Wheel: Shift for larger steps, Alt for fine steps",
+    sineCtrlWheelHint: "Hold Ctrl + mouse wheel to adjust",
 };
 
 const dictionaries: Record<Language, Record<I18nKey, string>> = { zh, en };

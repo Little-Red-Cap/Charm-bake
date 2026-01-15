@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Card, Checkbox, Collapse, Form, Input, InputNumber, Layout, Radio, Slider, Space, Tooltip, Typography, theme } from "antd";
+import { Card, Collapse, Form, Input, InputNumber, Layout, Radio, Slider, Space, Tooltip, Typography, theme } from "antd";
 import { useUiStore } from "../../store/ui.store";
 import { t } from "../../domain/i18n";
 
@@ -122,11 +122,9 @@ export default function SinePage() {
     const [enumName, setEnumName] = useState("SineTable");
     const [macroPrefix, setMacroPrefix] = useState("SINE");
     const [previewZoom, setPreviewZoom] = useState(1);
-    const [axisAuto, setAxisAuto] = useState(true);
-    const [axisMin, setAxisMin] = useState(-1);
-    const [axisMax, setAxisMax] = useState(1);
     const [hoverIndex, setHoverIndex] = useState<number | null>(null);
     const [zoomHint, setZoomHint] = useState<number | null>(null);
+    const [zoomHintPos, setZoomHintPos] = useState<{ x: number; y: number } | null>(null);
 
     const baseSamples = useMemo(() => {
         const count = Math.max(2, Math.floor(samples));
@@ -261,8 +259,8 @@ export default function SinePage() {
         const padding = { left: 28, right: 18, top: 8, bottom: 12 };
         const innerW = Math.max(10, width - padding.left - padding.right);
         const innerH = Math.max(10, height - padding.top - padding.bottom);
-        const minVal = axisAuto ? Math.min(...previewSamples, -1) : axisMin;
-        const maxVal = axisAuto ? Math.max(...previewSamples, 1) : axisMax;
+        const minVal = Math.min(...previewSamples, -1);
+        const maxVal = Math.max(...previewSamples, 1);
         const range = maxVal - minVal || 1;
         return previewSamples
             .map((v, idx) => {
@@ -271,7 +269,7 @@ export default function SinePage() {
                 return `${x.toFixed(2)},${y.toFixed(2)}`;
             })
             .join(" ");
-    }, [axisAuto, axisMax, axisMin, previewZoom, windowedSamples]);
+    }, [previewZoom, windowedSamples]);
 
     const stats = useMemo(() => {
         const min = Math.min(...windowedSamples);
@@ -382,71 +380,81 @@ export default function SinePage() {
                     <Space direction="vertical" size="large" style={{ width: "100%" }}>
                         <Card title={t(language, "sinePreviewTitle")}>
                             <Form layout="vertical">
-                                <Space align="center" style={{ marginBottom: 12 }}>
-                                <Typography.Text>{t(language, "sinePreviewZoom")}</Typography.Text>
-                            </Space>
-                                <Space wrap size="large">
-                                    <Form.Item label={t(language, "sineSamples")}>
-                                        <InputNumber
-                                            min={8}
-                                            max={4096}
-                                            value={samples}
-                                            onChange={(v) => setSamples(Number(v || 64))}
-                                            onWheel={(e) => {
-                                                e.preventDefault();
-                                                const step = e.shiftKey ? 10 : e.altKey ? 1 : 5;
-                                                const next = clamp(samples + (e.deltaY < 0 ? step : -step), 8, 4096);
-                                                setSamples(next);
-                                            }}
-                                            style={{ width: 120 }}
-                                        />
-                                    </Form.Item>
-                                    <Form.Item label={t(language, "sineCycles")}>
-                                        <InputNumber
-                                            min={1}
-                                            max={16}
-                                            value={cycles}
-                                            onChange={(v) => setCycles(Number(v || 1))}
-                                            onWheel={(e) => {
-                                                e.preventDefault();
-                                                const step = e.shiftKey ? 2 : e.altKey ? 1 : 1;
-                                                const next = clamp(cycles + (e.deltaY < 0 ? step : -step), 1, 16);
-                                                setCycles(next);
-                                            }}
-                                            style={{ width: 120 }}
-                                        />
-                                    </Form.Item>
-                                    <Form.Item label={t(language, "sineBits")}>
-                                        <InputNumber
-                                            min={4}
-                                            max={16}
-                                            value={quantBits}
-                                            onChange={(v) => setQuantBits(Number(v || 12))}
-                                            onWheel={(e) => {
-                                                e.preventDefault();
-                                                const step = e.shiftKey ? 2 : e.altKey ? 1 : 1;
-                                                const next = clamp(quantBits + (e.deltaY < 0 ? step : -step), 4, 16);
-                                                setQuantBits(next);
-                                            }}
-                                            style={{ width: 120 }}
-                                        />
-                                    </Form.Item>
-                                    <Form.Item label={t(language, "sinePhase")}>
-                                        <Space>
+                                <div style={{ marginBottom: 6 }} />
+                                <Space wrap size={8}>
+                                    <Form.Item label={t(language, "sineSamples")} style={{ marginBottom: 8 }}>
+                                        <Tooltip title={t(language, "sineCtrlWheelHint")}>
                                             <InputNumber
-                                                min={-360}
-                                                max={360}
-                                                value={phaseDeg}
-                                                onChange={(v) => setPhaseDeg(Number(v || 0))}
+                                                min={8}
+                                                max={4096}
+                                                value={samples}
+                                                onChange={(v) => setSamples(Number(v || 64))}
                                                 onWheel={(e) => {
+                                                    if (!e.ctrlKey) return;
                                                     e.preventDefault();
-                                                    const step = e.shiftKey ? 15 : e.altKey ? 1 : 5;
-                                                    const next = clamp(phaseDeg + (e.deltaY < 0 ? step : -step), -360, 360);
-                                                    setPhaseDeg(next);
+                                                    const step = e.shiftKey ? 10 : e.altKey ? 1 : 5;
+                                                    const next = clamp(samples + (e.deltaY < 0 ? step : -step), 8, 4096);
+                                                    setSamples(next);
                                                 }}
                                                 style={{ width: 120 }}
-                                                addonAfter="deg"
                                             />
+                                        </Tooltip>
+                                    </Form.Item>
+                                    <Form.Item label={t(language, "sineCycles")} style={{ marginBottom: 8 }}>
+                                        <Tooltip title={t(language, "sineCtrlWheelHint")}>
+                                            <InputNumber
+                                                min={1}
+                                                max={16}
+                                                value={cycles}
+                                                onChange={(v) => setCycles(Number(v || 1))}
+                                                onWheel={(e) => {
+                                                    if (!e.ctrlKey) return;
+                                                    e.preventDefault();
+                                                    const step = e.shiftKey ? 2 : e.altKey ? 1 : 1;
+                                                    const next = clamp(cycles + (e.deltaY < 0 ? step : -step), 1, 16);
+                                                    setCycles(next);
+                                                }}
+                                                style={{ width: 120 }}
+                                            />
+                                        </Tooltip>
+                                    </Form.Item>
+                                    <Form.Item label={t(language, "sineBits")} style={{ marginBottom: 8 }}>
+                                        <Tooltip title={t(language, "sineCtrlWheelHint")}>
+                                            <InputNumber
+                                                min={4}
+                                                max={16}
+                                                value={quantBits}
+                                                onChange={(v) => setQuantBits(Number(v || 12))}
+                                                onWheel={(e) => {
+                                                    if (!e.ctrlKey) return;
+                                                    e.preventDefault();
+                                                    const step = e.shiftKey ? 2 : e.altKey ? 1 : 1;
+                                                    const next = clamp(quantBits + (e.deltaY < 0 ? step : -step), 4, 16);
+                                                    setQuantBits(next);
+                                                }}
+                                                style={{ width: 120 }}
+                                            />
+                                        </Tooltip>
+                                    </Form.Item>
+                                    <Form.Item label={t(language, "sinePhase")} style={{ marginBottom: 8 }}>
+                                        <Space>
+                                            <Tooltip title={t(language, "sineCtrlWheelHint")}>
+                                                <InputNumber
+                                                    min={-360}
+                                                    max={360}
+                                                    value={phaseDeg}
+                                                    onChange={(v) => setPhaseDeg(Number(v || 0))}
+                                                    onWheel={(e) => {
+                                                        if (!e.ctrlKey) return;
+                                                        e.preventDefault();
+                                                        const step = e.shiftKey ? 15 : e.altKey ? 1 : 5;
+                                                        const next = clamp(phaseDeg + (e.deltaY < 0 ? step : -step), -360, 360);
+                                                        setPhaseDeg(next);
+                                                    }}
+                                                    style={{ width: 120 }}
+                                                    addonAfter="deg"
+                                                />
+                                            </Tooltip>
                                             <PhaseDial
                                                 value={phaseDeg}
                                                 onChange={(v) => setPhaseDeg(v)}
@@ -454,20 +462,28 @@ export default function SinePage() {
                                             />
                                         </Space>
                                     </Form.Item>
-                                    <Form.Item label={t(language, "sineAmplitude")}>
+                                    <Form.Item label={t(language, "sineAmplitude")} style={{ marginBottom: 8 }}>
                                         <Slider min={0} max={1} step={0.05} value={amplitude} onChange={(v) => setAmplitude(Number(v))} style={{ width: 160 }} />
                                     </Form.Item>
-                                    <Form.Item label={t(language, "sineOffset")}>
+                                    <Form.Item label={t(language, "sineOffset")} style={{ marginBottom: 8 }}>
                                         <Slider min={-1} max={1} step={0.05} value={offset} onChange={(v) => setOffset(Number(v))} style={{ width: 160 }} />
                                     </Form.Item>
-                                    <Form.Item label={t(language, "sineLutRepeat")}>
-                                        <InputNumber
-                                            min={1}
-                                            max={16}
-                                            value={lutRepeat}
-                                            onChange={(v) => setLutRepeat(Number(v || 1))}
-                                            style={{ width: 120 }}
-                                        />
+                                    <Form.Item label={t(language, "sineLutRepeat")} style={{ marginBottom: 8 }}>
+                                        <Tooltip title={t(language, "sineCtrlWheelHint")}>
+                                            <InputNumber
+                                                min={1}
+                                                max={16}
+                                                value={lutRepeat}
+                                                onChange={(v) => setLutRepeat(Number(v || 1))}
+                                                onWheel={(e) => {
+                                                    if (!e.ctrlKey) return;
+                                                    e.preventDefault();
+                                                    const next = clamp(lutRepeat + (e.deltaY < 0 ? 1 : -1), 1, 16);
+                                                    setLutRepeat(next);
+                                                }}
+                                                style={{ width: 120 }}
+                                            />
+                                        </Tooltip>
                                     </Form.Item>
                                 </Space>
 
@@ -476,31 +492,7 @@ export default function SinePage() {
                                         {t(language, "sineAxisTitle")}
                                     </Typography.Text>
                                 </div>
-                                <Space wrap size="large" style={{ marginBottom: 12 }}>
-                                    <Form.Item label={t(language, "sineYAxisAuto")}>
-                                        <Checkbox checked={axisAuto} onChange={(e) => setAxisAuto(e.target.checked)}>
-                                            {t(language, "sineAxisAuto")}
-                                        </Checkbox>
-                                    </Form.Item>
-                                    {!axisAuto ? (
-                                        <>
-                                            <Form.Item label={t(language, "sineYAxisMin")}>
-                                                <InputNumber
-                                                    value={axisMin}
-                                                    onChange={(v) => setAxisMin(Number(v || -1))}
-                                                    style={{ width: 120 }}
-                                                />
-                                            </Form.Item>
-                                            <Form.Item label={t(language, "sineYAxisMax")}>
-                                                <InputNumber
-                                                    value={axisMax}
-                                                    onChange={(v) => setAxisMax(Number(v || 1))}
-                                                    style={{ width: 120 }}
-                                                />
-                                            </Form.Item>
-                                        </>
-                                    ) : null}
-                                </Space>
+                                <Space wrap size="large" style={{ marginBottom: 12 }} />
                             </Form>
                             <Space size="large" wrap style={{ marginBottom: 8 }}>
                                 <Typography.Text type="secondary">{t(language, "sineStatMin")}: {stats.min.toFixed(3)}</Typography.Text>
@@ -512,7 +504,7 @@ export default function SinePage() {
                                     </Typography.Text>
                                 ) : null}
                             </Space>
-                            <div style={{ overflowX: "auto" }}>
+                            <div style={{ overflowX: "auto", position: "relative" }}>
                                 <svg
                                     width={Math.max(240, (windowedSamples.length + 1) * 6) * previewZoom}
                                     height={200}
@@ -527,11 +519,13 @@ export default function SinePage() {
                                     onWheel={(e) => {
                                         if (!e.ctrlKey) return;
                                         e.preventDefault();
-                                        const step = 0.1;
-                                        const next = clamp(previewZoom + (e.deltaY < 0 ? step : -step), 0.5, 6);
+                                        const step = e.shiftKey ? 1 : e.altKey ? 0.1 : 0.5;
+                                        const next = clamp(previewZoom + (e.deltaY < 0 ? step : -step), 0.5, 10);
                                         setPreviewZoom(Number(next.toFixed(1)));
                                         setZoomHint(Number(next.toFixed(1)));
-                                        setTimeout(() => setZoomHint(null), 1200);
+                                        const rect = (e.currentTarget as SVGSVGElement).getBoundingClientRect();
+                                        setZoomHintPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+                                        setTimeout(() => setZoomHint(null), 1500);
                                     }}
                                 >
                                     {(() => {
@@ -539,8 +533,8 @@ export default function SinePage() {
                                         const padding = { left: 28, right: 18, top: 8, bottom: 12 };
                                         const innerW = Math.max(10, width - padding.left - padding.right);
                                         const innerH = Math.max(10, 200 - padding.top - padding.bottom);
-                                        const minVal = axisAuto ? Math.min(...windowedSamples, -1) : axisMin;
-                                        const maxVal = axisAuto ? Math.max(...windowedSamples, 1) : axisMax;
+                                        const minVal = Math.min(...windowedSamples, -1);
+                                        const maxVal = Math.max(...windowedSamples, 1);
                                         const zeroInside = minVal <= 0 && maxVal >= 0;
                                         const zeroY = zeroInside
                                             ? padding.top + (1 - (0 - minVal) / (maxVal - minVal || 1)) * innerH
@@ -592,8 +586,8 @@ export default function SinePage() {
                                                 return padding.left + (hoverValue.idx / (mathSamples.length - 1)) * innerW;
                                             })()}
                                             cy={(() => {
-                                                const minVal = axisAuto ? Math.min(...windowedSamples, -1) : axisMin;
-                                                const maxVal = axisAuto ? Math.max(...windowedSamples, 1) : axisMax;
+                                                const minVal = Math.min(...windowedSamples, -1);
+                                                const maxVal = Math.max(...windowedSamples, 1);
                                                 const range = maxVal - minVal || 1;
                                                 const padding = { top: 8, bottom: 12 };
                                                 const innerH = Math.max(10, 200 - padding.top - padding.bottom);
@@ -604,12 +598,24 @@ export default function SinePage() {
                                         />
                                     ) : null}
                                 </svg>
+                                {zoomHint != null && zoomHintPos ? (
+                                    <div
+                                        style={{
+                                            position: "absolute",
+                                            left: zoomHintPos.x + 4,
+                                            top: zoomHintPos.y + 4,
+                                            padding: "6px 10px",
+                                            borderRadius: 8,
+                                            background: "rgba(0, 0, 0, 0.6)",
+                                            color: "#fff",
+                                            fontSize: 12,
+                                            pointerEvents: "none",
+                                        }}
+                                    >
+                                        {t(language, "sinePreviewZoom")}: {zoomHint.toFixed(1)}x
+                                    </div>
+                                ) : null}
                             </div>
-                            {zoomHint != null ? (
-                                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                                    {t(language, "sinePreviewZoom")}: {zoomHint.toFixed(1)}x
-                                </Typography.Text>
-                            ) : null}
                         </Card>
 
                         <Card title={t(language, "sineOutputCodeTitle")}>
