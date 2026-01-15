@@ -11,6 +11,7 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             settings::save_settings,
+            settings::save_text_file,
             settings::load_settings,
             font_pipeline::generate_font,
             font_pipeline::export_font,

@@ -10,6 +10,7 @@ import {
     TableOutlined,
 } from "@ant-design/icons";
 import { invoke } from "@tauri-apps/api/core";
+import { save } from "@tauri-apps/plugin-dialog";
 import TopBar from "../components/TopBar/TopBar";
 import StatusBar from "../components/StatusBar/StatusBar";
 import LeftConfigSider from "../components/LeftConfig/LeftConfigSider";
@@ -20,6 +21,7 @@ import SinePage from "../components/Sine/SinePage";
 import ImagePage from "../components/Image/ImagePage";
 import { DEFAULT_CONFIG } from "../domain/presets";
 import { useFontJobStore } from "../store/fontjob.store";
+import { useImageJobStore } from "../store/imagejob.store";
 import { useUiStore } from "../store/ui.store";
 import { t } from "../domain/i18n";
 import type { Language } from "../domain/i18n";
@@ -149,24 +151,76 @@ function SevenSegTab() {
 
 function HeaderActions({ activeTab }: { activeTab: string }) {
     const language = useUiStore((s) => s.language);
+    const { outputCode, imagePath } = useImageJobStore();
+    const [msgApi, contextHolder] = message.useMessage();
+
     if (activeTab === "font") {
         return <TopBar />;
     }
 
+    if (activeTab === "image") {
+        const hasOutput = Boolean(outputCode);
+        const base = imagePath ? imagePath.split(/[\\/]/).pop()?.replace(/\.[^.]+$/, "") : null;
+        const defaultName = `${base || "image"}.c`;
+
+        const onCopy = async () => {
+            if (!outputCode) return;
+            await navigator.clipboard.writeText(outputCode);
+            msgApi.success(t(language, "copySuccess"));
+        };
+
+        const onSave = async () => {
+            if (!outputCode) return;
+            const selected = await save({
+                defaultPath: defaultName,
+                filters: [{ name: "C Source", extensions: ["c"] }],
+            });
+            if (!selected) return;
+            try {
+                await invoke("save_text_file", { path: selected, contents: outputCode });
+                msgApi.success(t(language, "saveSuccess", { path: selected }));
+            } catch (e: any) {
+                msgApi.error(e?.message || String(e));
+            }
+        };
+
+        return (
+            <>
+                {contextHolder}
+                <Space>
+                    <Tooltip title={t(language, "generatePreview")}>
+                        <Button type="primary" icon={<PlayCircleOutlined />} disabled>
+                            {t(language, "generatePreview")}
+                        </Button>
+                    </Tooltip>
+                    <Button icon={<CopyOutlined />} disabled={!hasOutput} onClick={onCopy}>
+                        {t(language, "copy")}
+                    </Button>
+                    <Button icon={<SaveOutlined />} disabled={!hasOutput} onClick={onSave}>
+                        {t(language, "save")}
+                    </Button>
+                </Space>
+            </>
+        );
+    }
+
     return (
-        <Space>
-            <Tooltip title={t(language, "generatePreview")}>
-                <Button type="primary" icon={<PlayCircleOutlined />} disabled>
-                    {t(language, "generatePreview")}
+        <>
+            {contextHolder}
+            <Space>
+                <Tooltip title={t(language, "generatePreview")}>
+                    <Button type="primary" icon={<PlayCircleOutlined />} disabled>
+                        {t(language, "generatePreview")}
+                    </Button>
+                </Tooltip>
+                <Button icon={<CopyOutlined />} disabled>
+                    {t(language, "copy")}
                 </Button>
-            </Tooltip>
-            <Button icon={<CopyOutlined />} disabled>
-                {t(language, "copy")}
-            </Button>
-            <Button icon={<SaveOutlined />} disabled>
-                {t(language, "save")}
-            </Button>
-        </Space>
+                <Button icon={<SaveOutlined />} disabled>
+                    {t(language, "save")}
+                </Button>
+            </Space>
+        </>
     );
 }
 

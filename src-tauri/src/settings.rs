@@ -23,6 +23,17 @@ pub fn save_settings(
 }
 
 #[tauri::command]
+pub fn save_text_file(path: String, contents: String) -> Result<(), String> {
+    let file_path = PathBuf::from(path);
+    if let Some(parent) = file_path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create directory {}: {}", parent.display(), e))?;
+    }
+    write_atomic(&file_path, contents.as_bytes())?;
+    Ok(())
+}
+
+#[tauri::command]
 pub fn load_settings(app: tauri::AppHandle, path: Option<String>) -> Result<String, String> {
     let file_path = resolve_load_path(&app, path)?;
     if !file_path.exists() {

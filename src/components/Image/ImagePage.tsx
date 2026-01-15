@@ -2,7 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Card, Collapse, Form, Input, InputNumber, Layout, Radio, Space, theme } from "antd";
 import { PictureOutlined } from "@ant-design/icons";
 import Editor from "@monaco-editor/react";
+import { convertFileSrc } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
 import { useUiStore } from "../../store/ui.store";
+import { useImageJobStore } from "../../store/imagejob.store";
 import { t } from "../../domain/i18n";
 import sampleImageUrl from "../../assets/sample-image.png";
 
@@ -165,6 +168,8 @@ function thresholdMono(gray: Uint8ClampedArray, threshold = 128): Uint8ClampedAr
 }
 
 function packMono(mono: Uint8ClampedArray, width: number, height: number): Uint8Array {
+    // TODO: support scan direction (row/col, flip H/V, top-down/right-left).
+    // TODO: support bit order per byte (MSB/LSB) and byte-level reverse options.
     const stride = Math.ceil(width / 8);
     const out = new Uint8Array(stride * height);
     for (let y = 0; y < height; y += 1) {
@@ -185,6 +190,7 @@ function formatHex(value: number, width: number): string {
 }
 
 function formatArray(values: ArrayLike<number>, perLine: number, width: number): string {
+    // TODO: support number format (bin/dec/hex) for output code.
     const lines: string[] = [];
     let line: string[] = [];
     for (let i = 0; i < values.length; i += 1) {
@@ -209,6 +215,7 @@ function buildOutputCode(
     mono: Uint8ClampedArray
 ): string {
     const header = `// size: ${width}x${height}\n`;
+    // TODO: include scan/bit order metadata in header once implemented.
     if (mode === "mono") {
         const packed = packMono(mono, width, height);
         const body = formatArray(packed, 12, 2);
@@ -242,6 +249,7 @@ function buildOutputCode(
 }
 
 function applyDither(gray: Uint8ClampedArray, width: number, height: number, mode: DitherMode): Uint8ClampedArray {
+    // TODO: expose threshold, dither strength, and ordered matrix size in UI.
     switch (mode) {
         case "floyd":
             return ditherFloyd(gray, width, height);
@@ -313,6 +321,8 @@ export default function ImagePage() {
     const { token } = theme.useToken();
     const uiTheme = useUiStore((s) => s.theme);
     const language = useUiStore((s) => s.language);
+    const setOutput = useImageJobStore((s) => s.setOutput);
+    const setImageJob = useImageJobStore((s) => s.setOutput);
 
     const [imagePath, setImagePath] = useState("");
     const [imageUrl, setImageUrl] = useState<string | null>(sampleImageUrl);
@@ -336,6 +346,17 @@ export default function ImagePage() {
         if (!outputCode) return t(language, "statsNoOutput");
         return outputCode;
     }, [language, outputCode]);
+
+    const pickImageFile = async () => {
+        const selected = await open({
+            multiple: false,
+            filters: [{ name: "Image", extensions: ["png", "jpg", "jpeg", "bmp", "gif", "webp"] }],
+        });
+        if (!selected) return;
+        const path = Array.isArray(selected) ? selected[0] : selected;
+        setImagePath(path);
+        setImageUrl(convertFileSrc(path));
+    };
 
     useEffect(() => {
         let cancelled = false;
@@ -392,6 +413,14 @@ export default function ImagePage() {
             cancelled = true;
         };
     }, [imageUrl, resizeMode, outputMode, ditherMode, targetWidth, targetHeight]);
+
+    useEffect(() => {
+        setOutput({ outputCode, outputMode, imagePath: imagePath || null });
+    }, [imagePath, outputCode, outputMode, setOutput]);
+
+    useEffect(() => {
+        setImageJob({ outputCode, outputMode, imagePath: imagePath || null });
+    }, [outputCode, outputMode, imagePath, setImageJob]);
 
     useEffect(() => {
         if (!isDragging) return undefined;
@@ -487,7 +516,7 @@ export default function ImagePage() {
                                                         onChange={(e) => setImagePath(e.target.value)}
                                                         placeholder={t(language, "imagePathPlaceholder")}
                                                     />
-                                                    <Button>{t(language, "imagePickFile")}</Button>
+                                                    <Button onClick={pickImageFile}>{t(language, "imagePickFile")}</Button>
                                                     <Button
                                                         onClick={() => {
                                                             setImagePath("src-tauri/icons/Square310x310Logo.png");
@@ -555,6 +584,7 @@ export default function ImagePage() {
                                                     <Radio value="bayer4">{t(language, "imageDitherBayer4")}</Radio>
                                                     <Radio value="bayer8">{t(language, "imageDitherBayer8")}</Radio>
                                                 </Radio.Group>
+                                                {/* TODO: add threshold slider, dither strength, matrix size, and scan/bit order options. */}
                                             </Form.Item>
                                         </Form>
                                     ),
