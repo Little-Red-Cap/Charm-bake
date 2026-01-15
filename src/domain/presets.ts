@@ -1,4 +1,4 @@
-import type { FontJobConfig } from "./types";
+﻿import type { FontJobConfig } from "./types";
 
 export function sanitizeIdent(input: string): string {
     // 模块/变量名安全化：字母数字下划线，首字符不能是数字
@@ -46,7 +46,10 @@ export const DEFAULT_CONFIG: FontJobConfig = {
     exportName: "yahei_12",
     withComments: true,
     numberFormat: "bin",
+    binarizeMode: "mask",
     threshold: 128,
+    gamma: 1.4,
+    oversample: 2,
 
     saveDir: null,
     saveFileName: "yahei_12.cppm",

@@ -1,4 +1,4 @@
-use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
+﻿use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use base64::Engine;
 use font_kit::handle::Handle;
 use font_kit::source::SystemSource;
@@ -39,8 +39,14 @@ pub struct FontJob {
     export_name: String,
     with_comments: bool,
     number_format: String,
+    #[serde(default = "default_binarize_mode")]
+    binarize_mode: String,
     #[serde(default = "default_threshold")]
     threshold: u8,
+    #[serde(default = "default_gamma")]
+    gamma: f32,
+    #[serde(default = "default_oversample")]
+    oversample: u32,
 }
 
 #[derive(Debug, Serialize)]
@@ -132,8 +138,20 @@ pub struct ExportFontArgs {
 
 const PREVIEW_MAX_GLYPHS: usize = 256;
 const PREVIEW_MAX_PIXELS_TOTAL: usize = 4 * 1024 * 1024; // 4MB raw grayscale
+fn default_binarize_mode() -> String {
+    "mask".to_string()
+}
+
 fn default_threshold() -> u8 {
     128
+}
+
+fn default_gamma() -> f32 {
+    1.4
+}
+
+fn default_oversample() -> u32 {
+    2
 }
 
 #[tauri::command]
@@ -150,8 +168,8 @@ pub fn generate_font(job: FontJob) -> Result<GeneratedResult, String> {
         .as_deref()
         .and_then(|s| s.trim().chars().next())
         .map(|c| c as u32);
-    let glyph_data = build_glyph_data(&font, job.size_px, &codepoint_map, fallback_cp, job.threshold);
-    let (glyphs, preview_truncated) = build_preview(&font, job.size_px, &codepoint_map, job.threshold);
+    let glyph_data = build_glyph_data(&font, job.size_px, &codepoint_map, fallback_cp, &job.binarize_mode, job.threshold, job.gamma, job.oversample);
+    let (glyphs, preview_truncated) = build_preview(&font, job.size_px, &codepoint_map, &job.binarize_mode, job.threshold, job.gamma, job.oversample);
     if let Some((count, bytes)) = preview_truncated {
         warnings.push(format!("Preview truncated (glyphs={}, bytes={})", count, bytes));
     }
@@ -217,7 +235,10 @@ pub fn export_font(
         args.job.size_px,
         &codepoint_map,
         fallback_cp,
+        &args.job.binarize_mode,
         args.job.threshold,
+        args.job.gamma,
+        args.job.oversample,
     );
     let (line_height, baseline) = line_metrics(&font, args.job.size_px);
     let cpp_module = generate_cpp_module(&args.job, &glyph_data, line_height, baseline);
@@ -334,12 +355,140 @@ fn parse_fallback_char(job: &FontJob, warnings: &mut Vec<String>) -> Option<char
     }
     Some(first)
 }
+enum BinarizeMode {
+    Mask,
+    GammaOversample,
+}
+
+fn parse_binarize_mode(mode: &str) -> BinarizeMode {
+    if mode == "gamma_oversample" {
+        BinarizeMode::GammaOversample
+    } else {
+        BinarizeMode::Mask
+    }
+}
+
+fn clamp_oversample(value: u32) -> u32 {
+    if value < 1 {
+        1
+    } else if value > 4 {
+        4
+    } else {
+        value
+    }
+}
+
+fn apply_gamma(gray: &[u8], gamma: f32) -> Vec<u8> {
+    if gamma <= 0.0 || (gamma - 1.0).abs() < f32::EPSILON {
+        return gray.to_vec();
+    }
+    gray.iter()
+        .map(|v| {
+            let n = (*v as f32) / 255.0;
+            let g = n.powf(gamma).clamp(0.0, 1.0);
+            (g * 255.0).round() as u8
+        })
+        .collect()
+}
+
+fn downsample_gray(
+    src: &[u8],
+    src_w: usize,
+    src_h: usize,
+    dst_w: usize,
+    dst_h: usize,
+    gamma: f32,
+) -> Vec<u8> {
+    if src_w == 0 || src_h == 0 || dst_w == 0 || dst_h == 0 {
+        return Vec::new();
+    }
+    let scale_x = src_w as f32 / dst_w as f32;
+    let scale_y = src_h as f32 / dst_h as f32;
+    let mut out = vec![0u8; dst_w * dst_h];
+
+    for y in 0..dst_h {
+        let mut y0 = (y as f32 * scale_y).floor() as usize;
+        let mut y1 = ((y + 1) as f32 * scale_y).ceil() as usize;
+        if y0 >= src_h {
+            y0 = src_h - 1;
+        }
+        if y1 > src_h {
+            y1 = src_h;
+        }
+        if y1 <= y0 {
+            y1 = (y0 + 1).min(src_h);
+        }
+
+        for x in 0..dst_w {
+            let mut x0 = (x as f32 * scale_x).floor() as usize;
+            let mut x1 = ((x + 1) as f32 * scale_x).ceil() as usize;
+            if x0 >= src_w {
+                x0 = src_w - 1;
+            }
+            if x1 > src_w {
+                x1 = src_w;
+            }
+            if x1 <= x0 {
+                x1 = (x0 + 1).min(src_w);
+            }
+
+            let mut sum: u32 = 0;
+            let mut count: u32 = 0;
+            for yy in y0..y1 {
+                let row = yy * src_w;
+                for xx in x0..x1 {
+                    sum += src[row + xx] as u32;
+                    count += 1;
+                }
+            }
+            let mut v = if count > 0 { sum as f32 / count as f32 } else { 0.0 };
+            if gamma > 0.0 && (gamma - 1.0).abs() > f32::EPSILON {
+                let n = (v / 255.0).clamp(0.0, 1.0);
+                v = n.powf(gamma) * 255.0;
+            }
+            out[y * dst_w + x] = v.round() as u8;
+        }
+    }
+
+    out
+}
+
+fn rasterize_gray(
+    font: &Font,
+    glyph_index: u16,
+    size_px: u32,
+    mode: &str,
+    gamma: f32,
+    oversample: u32,
+) -> (fontdue::Metrics, Vec<u8>) {
+    let (metrics, bitmap) = font.rasterize_indexed(glyph_index, size_px as f32);
+    match parse_binarize_mode(mode) {
+        BinarizeMode::Mask => (metrics, bitmap),
+        BinarizeMode::GammaOversample => {
+            let os = clamp_oversample(oversample);
+            if os <= 1 {
+                return (metrics, apply_gamma(&bitmap, gamma));
+            }
+            let (os_metrics, os_bitmap) =
+                font.rasterize_indexed(glyph_index, size_px as f32 * os as f32);
+            let dst_w = metrics.width as usize;
+            let dst_h = metrics.height as usize;
+            let src_w = os_metrics.width as usize;
+            let src_h = os_metrics.height as usize;
+            let downs = downsample_gray(&os_bitmap, src_w, src_h, dst_w, dst_h, gamma);
+            (metrics, downs)
+        }
+    }
+}
 
 fn build_preview(
     font: &Font,
     size_px: u32,
     codepoint_map: &BTreeMap<u32, u16>,
+    binarize_mode: &str,
     threshold: u8,
+    gamma: f32,
+    oversample: u32,
 ) -> (Vec<PreviewGlyph>, Option<(usize, usize)>) {
     let mut glyphs = Vec::new();
     let mut total_bytes: usize = 0;
@@ -356,7 +505,7 @@ fn build_preview(
     }
 
     for glyph_index in unique_indices.iter().take(PREVIEW_MAX_GLYPHS) {
-        let (metrics, bitmap) = font.rasterize_indexed(*glyph_index, size_px as f32);
+        let (metrics, bitmap) = rasterize_gray(font, *glyph_index, size_px, binarize_mode, gamma, oversample);
         let codepoint = representative_cp.get(glyph_index).copied().unwrap_or(0);
         let w = metrics.width as u32;
         let h = metrics.height as u32;
@@ -394,7 +543,10 @@ fn build_glyph_data(
     size_px: u32,
     codepoint_map: &BTreeMap<u32, u16>,
     fallback_cp: Option<u32>,
+    binarize_mode: &str,
     threshold: u8,
+    gamma: f32,
+    oversample: u32,
 ) -> GlyphData {
     let mut unique_indices: Vec<u16> = Vec::new();
     let mut seen: HashSet<u16> = HashSet::new();
@@ -413,7 +565,7 @@ fn build_glyph_data(
     let mut max_h: u32 = 0;
 
     for glyph_index in unique_indices {
-        let (metrics, bitmap) = font.rasterize_indexed(glyph_index, size_px as f32);
+        let (metrics, bitmap) = rasterize_gray(font, glyph_index, size_px, binarize_mode, gamma, oversample);
         let w = metrics.width as u32;
         let h = metrics.height as u32;
         if w > max_w {
@@ -637,3 +789,13 @@ fn pack_bitmap_1b(gray: &[u8], w: u32, h: u32, threshold: u8) -> (Vec<u8>, usize
     }
     (packed, stride)
 }
+
+
+
+
+
+
+
+
+
+

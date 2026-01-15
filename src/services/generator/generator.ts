@@ -1,4 +1,4 @@
-import type { FontJobConfig, FontGenerateResult, PreviewGlyph } from "../../domain/types";
+﻿import type { FontJobConfig, FontGenerateResult, PreviewGlyph } from "../../domain/types";
 import { invoke } from "@tauri-apps/api/core";
 
 type BackendPreviewGlyph = {
@@ -62,13 +62,16 @@ function buildJob(cfg: FontJobConfig) {
             },
             custom_chars: normalizeText(cfg.customChars),
             fallback_char: normalizeText(cfg.fallbackChar),
-        output_kind: "c_array",
-        export_name: cfg.exportName,
-        with_comments: cfg.withComments,
-        number_format: cfg.numberFormat,
-        threshold: cfg.threshold,
-    };
-}
+            output_kind: "c_array",
+            export_name: cfg.exportName,
+            with_comments: cfg.withComments,
+            number_format: cfg.numberFormat,
+            binarize_mode: cfg.binarizeMode,
+            threshold: cfg.threshold,
+            gamma: cfg.gamma,
+            oversample: cfg.oversample,
+        };
+    }
 
     const path = (cfg.fontFilePath ?? "").trim();
     if (!path) {
@@ -88,7 +91,10 @@ function buildJob(cfg: FontJobConfig) {
         export_name: cfg.exportName,
         with_comments: cfg.withComments,
         number_format: cfg.numberFormat,
+        binarize_mode: cfg.binarizeMode,
         threshold: cfg.threshold,
+        gamma: cfg.gamma,
+        oversample: cfg.oversample,
     };
 }
 

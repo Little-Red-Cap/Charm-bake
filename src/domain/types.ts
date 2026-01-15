@@ -1,5 +1,6 @@
-export type OutputKind = "cpp_module" | "cpp" | "c";
+﻿export type OutputKind = "cpp_module" | "cpp" | "c";
 export type NumberFormat = "bin" | "hex" | "dec";
+export type BinarizeMode = "mask" | "gamma_oversample";
 
 export type FontSourceMode = "system" | "file";
 
@@ -8,9 +9,9 @@ export interface FontJobConfig {
     systemFontName: string | null;
     fontFilePath: string | null;
 
-    rangeStart: string; // 单字符，如 " "
-    rangeEnd: string;   // 单字符，如 "~"
-    customChars: string; // 任意字符串
+    rangeStart: string; // 单字符，例如 " "
+    rangeEnd: string;   // 单字符，例如 "~"
+    customChars: string; // 任意字符
     fallbackChar: string; // 单字符，默认 "?"
 
     sizePx: number;
@@ -20,7 +21,11 @@ export interface FontJobConfig {
     exportName: string;
     withComments: boolean;
     numberFormat: NumberFormat;
+
+    binarizeMode: BinarizeMode;
     threshold: number;
+    gamma: number;
+    oversample: number;
 
     saveDir: string | null;
     saveFileName: string; // e.g. yahei_12.cppm

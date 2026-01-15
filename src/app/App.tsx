@@ -9,7 +9,6 @@ import { DEFAULT_CONFIG } from "../domain/presets";
 import { useFontJobStore } from "../store/fontjob.store";
 import "../App.css";
 
-
 const parseRangeString = (range: string | undefined) => {
     if (!range) return null;
     const match = range.match(/(\d+)\s*-\s*(\d+)/);
@@ -43,7 +42,10 @@ const migrateSettings = (raw: any) => {
         if (typeof options.outputKind === "string") cfg.outputKind = options.outputKind;
         if (typeof options.withComments === "boolean") cfg.withComments = options.withComments;
         if (typeof options.numberFormat === "string") cfg.numberFormat = options.numberFormat;
+        if (typeof options.binarizeMode === "string") cfg.binarizeMode = options.binarizeMode;
         if (typeof options.threshold === "number") cfg.threshold = options.threshold;
+        if (typeof options.gamma === "number") cfg.gamma = options.gamma;
+        if (typeof options.oversample === "number") cfg.oversample = options.oversample;
         if (typeof options.customChars === "string") cfg.customChars = options.customChars;
         if (typeof options.fallbackChar === "string") cfg.fallbackChar = options.fallbackChar;
         if (typeof options.saveDir === "string" || options.saveDir === null) cfg.saveDir = options.saveDir;
